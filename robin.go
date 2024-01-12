@@ -2,28 +2,19 @@ package robin
 
 import "net/http"
 
-type ProdecureType int
+type ProcedureType int
 
 const (
-	QueryProcedure ProdecureType = iota
+	QueryProcedure ProcedureType = iota
 	MutationProcedure
 )
 
 type Procedure interface {
 	Name() string
-	Type() ProdecureType
-	Body() any
+	Type() ProcedureType
 }
 
-type (
-	ProcedureFn[ReturnType any] func(ctx Context) (ReturnType, error)
-	ErrorHandler                func(error) interface{}
-)
-
-type query[ReturnType any] struct {
-	name string
-	fn   ProcedureFn[ReturnType]
-}
+type ErrorHandler func(error) any
 
 type Robin struct {
 	procedures   []Procedure
@@ -40,6 +31,11 @@ func New(errorHandler ErrorHandler) *Robin {
 	return &Robin{procedures: []Procedure{}, errorHandler: errorHandler}
 }
 
-func Query[R any](name string, fn ProcedureFn[R]) *query[R] {
-	return &query[R]{name: name, fn: fn}
+func (r *Robin) Add(procedure Procedure) *Robin {
+	r.procedures = append(r.procedures, procedure)
+	return r
+}
+
+func (r *Robin) AddProcedure(procedure Procedure) *Robin {
+	return r.Add(procedure)
 }
