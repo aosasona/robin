@@ -1,7 +1,7 @@
 package robin
 
 type (
-	QueryFn[ReturnType any, ParamsType any] func(ctx Context, body ParamsType) (ReturnType, error)
+	QueryFn[ReturnType any, ParamsType any] func(ctx *Context, body ParamsType) (ReturnType, error)
 
 	query[ReturnType any, ParamsType any] struct {
 		name   string
