@@ -14,10 +14,16 @@ func (m *mutation[_, _]) Name() string {
 	return m.name
 }
 
-func (q *mutation[_, _]) Type() ProcedureType {
-	return MutationProcedure
+func (m *mutation[_, _]) Type() ProcedureType {
+	return ProcedureTypeMutation
+}
+
+func (m *mutation[_, _]) StripIllegalChars() {
+	mutationNameRegex.ReplaceAll([]byte(m.name), []byte(""))
 }
 
 func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
 	return &mutation[R, B]{name: name, fn: fn}
 }
+
+var _ Procedure = &mutation[string, string]{}

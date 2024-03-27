@@ -15,9 +15,15 @@ func (q *query[_, _]) Name() string {
 }
 
 func (q *query[_, _]) Type() ProcedureType {
-	return QueryProcedure
+	return ProcedureTypeQuery
+}
+
+func (q *query[_, _]) StripIllegalChars() {
+	compressedProcedureNameRegex.ReplaceAll([]byte(q.name), []byte(""))
 }
 
 func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
 	return &query[R, B]{name: name, fn: fn}
 }
+
+var _ Procedure = &query[string, string]{}
