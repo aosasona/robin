@@ -18,6 +18,20 @@ func (q *query[_, _]) Type() ProcedureType {
 	return ProcedureTypeQuery
 }
 
+func (q *query[ReturnType, ParamsType]) PayloadInterface() any {
+	return q.params
+}
+
+func (q *query[ReturnType, ParamsType]) Call(ctx *Context, rawParams any) (any, error) {
+	params, ok := rawParams.(ParamsType)
+
+	if !ok {
+		return nil, InvalidTypes(q.params, rawParams)
+	}
+
+	return q.fn(ctx, params)
+}
+
 func (q *query[_, _]) StripIllegalChars() {
 	procedureNameRegex.ReplaceAll([]byte(q.name), []byte(""))
 }
@@ -26,4 +40,4 @@ func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
 	return &query[R, B]{name: name, fn: fn}
 }
 
-var _ Procedure = &query[string, string]{}
+var _ Procedure = &query[any, any]{}

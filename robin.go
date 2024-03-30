@@ -1,15 +1,12 @@
 package robin
 
 import (
-	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
-	"net/url"
 	"regexp"
-	"strings"
 )
 
-// TODO: use a single query param to decide what the procedure and type is e.g. q__[name]
 const (
 	ProcSeparator = "__"
 	ProcNameKey   = ProcSeparator + "proc"
@@ -27,33 +24,57 @@ const (
 type Procedure interface {
 	Name() string
 	Type() ProcedureType
+	PayloadInterface() any
+	Call(*Context, any) (any, error)
 	StripIllegalChars()
 }
 
-type ErrorHandler func(error) (any, int)
+type (
+	Robin struct {
+		// Enable debug mode to log useful info
+		debug bool
 
-type Robin struct {
-	// a list of query and mutation procedures
-	procedures map[string]Procedure
+		// a list of query and mutation procedures
+		procedures map[string]Procedure
 
-	// a function that will be called when an error occurs, if not provided, the default error handler will be used
-	errorHandler ErrorHandler
-}
+		// a function that will be called when an error occurs, if not provided, the default error handler will be used
+		errorHandler ErrorHandler
+	}
 
-type Context struct {
-	Request  *http.Request
-	Response http.ResponseWriter
+	Context struct {
+		Request  *http.Request
+		Response http.ResponseWriter
 
-	// TODO: add fields for extracting body, query, etc
-}
+		// TODO: add fields for extracting body, query, etc
+	}
+)
 
 type Options struct {
+	EnableDebugMode bool
+
 	// ErrorHandler is a function that will be called when an error occurs, it should ideally return a marshallable struct
 	ErrorHandler ErrorHandler
 }
 
-func DefaultErrorHandler(err error) (any, int) {
-	return struct{ message string }{message: err.Error()}, 500
+func DefaultErrorHandler(err error) ([]byte, int) {
+	var (
+		code    int    = 500
+		message string = err.Error()
+	)
+
+	if e, ok := err.(Error); ok {
+		message = e.Message
+
+		if e.Code >= 400 && e.Code < 600 {
+			code = e.Code
+		}
+	} else if e, ok := err.(InternalError); ok {
+		message = e.Reason
+
+		slog.Error("An internal error occurred", slog.String("reason", e.Reason), slog.Any("originalError", e.OriginalError.Error()))
+	}
+
+	return []byte(message), code
 }
 
 // Robin is just going to be an adapter for something like Echo
@@ -64,6 +85,7 @@ func New(opts *Options) *Robin {
 	}
 
 	return &Robin{
+		debug:        opts.EnableDebugMode,
 		procedures:   make(map[string]Procedure),
 		errorHandler: errorHandler,
 	}
@@ -73,6 +95,10 @@ func (r *Robin) Add(procedure Procedure) *Robin {
 	procedure.StripIllegalChars()
 
 	if _, ok := r.procedures[procedure.Name()]; ok {
+		if r.debug {
+			slog.Warn("Attempted to add a duplicate procedure, skipping...", slog.String("procedureName", procedure.Name()))
+		}
+
 		return r
 	}
 
@@ -97,70 +123,34 @@ func (r *Robin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: find the procedure and call it below
+	procedure, found := r.findProcedure(procedureName, procedureType)
+	if !found {
+		r.sendError(w, InternalError{Reason: "Procedure not found"})
+		return
+	}
 
 	switch ProcedureType(procedureType) {
-	case ProcedureTypeQuery:
-		r.handleQuery(ctx, "")
-	case ProcedureTypeMutation:
-		r.handleMutation(ctx, "")
+	case ProcedureTypeQuery, ProcedureTypeMutation:
+		err := r.handleProcedureCall(ctx, *procedure)
+		if err != nil {
+			r.sendError(w, err)
+			return
+		}
 	default:
+		r.sendError(w, InternalError{Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(procedureType)})
+		return
 	}
-}
-
-func (r *Robin) handleQuery(ctx *Context, name string) (any, error) {
-	return nil, nil
-}
-
-func (r *Robin) handleMutation(ctx *Context, name string) (any, error) {
-	return nil, nil
-}
-
-func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, error) {
-	var (
-		procedureName string
-		procedureType ProcedureType
-	)
-
-	// Queries can only be issued via GET requests, and Mutations can only be issued via POST requests but in both cases, the procedure name is attached to the URL query
-	proc := url.Query().Get(ProcNameKey)
-	if strings.TrimSpace(procedureName) == "" {
-		return "", "", errors.New("No procedure name provided")
-	}
-
-	procParts := strings.Split(proc, ProcSeparator)
-	if len(procParts) != 2 {
-		return "", "", fmt.Errorf("Invalid procedure param provided in URL, expected format (q|m)%s[name] e.g q%sgetUser", ProcSeparator, ProcSeparator)
-	}
-
-	shortProcType := procParts[0]
-	switch shortProcType {
-	case "q":
-		procedureType = ProcedureTypeQuery
-	case "m":
-		procedureType = ProcedureTypeMutation
-	default:
-		return "", "", errors.New("No procedure name provided")
-	}
-
-	return procedureType, procedureName, nil
-}
-
-func (r *Robin) findProcedure(name string, procedureType ProcedureType) (*Procedure, bool) {
-	return nil, false
 }
 
 func (r *Robin) sendError(w http.ResponseWriter, err error) {
+	if r.debug {
+		slog.Error("An error occurred in handler", slog.Any("error", err))
+	}
+
 	errorResp, code := r.errorHandler(err)
-	jsonResp := toJsonBytes(errorResp)
+	jsonResp := fmt.Sprintf(`{"error": "%s"}`, string(errorResp))
 
+	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(code)
-	w.Header().Add("Content-Type", "application/json")
-	w.Write(jsonResp)
-}
-
-func toJsonBytes(data any) []byte {
-	var jsonData []byte = []byte{}
-
-	return jsonData
+	w.Write([]byte(jsonResp))
 }
