@@ -97,6 +97,8 @@ func (r *Robin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// TODO: find the procedure and call it below
+
 	switch ProcedureType(procedureType) {
 	case ProcedureTypeQuery:
 		r.handleQuery(ctx, "")
@@ -144,8 +146,8 @@ func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, er
 	return procedureType, procedureName, nil
 }
 
-func (r *Robin) findProcedure(name string, procedureType ProcedureType) *Procedure, bool {
-	return nil, nil
+func (r *Robin) findProcedure(name string, procedureType ProcedureType) (*Procedure, bool) {
+	return nil, false
 }
 
 func (r *Robin) sendError(w http.ResponseWriter, err error) {

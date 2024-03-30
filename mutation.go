@@ -19,7 +19,7 @@ func (m *mutation[_, _]) Type() ProcedureType {
 }
 
 func (m *mutation[_, _]) StripIllegalChars() {
-	mutationNameRegex.ReplaceAll([]byte(m.name), []byte(""))
+	procedureNameRegex.ReplaceAll([]byte(m.name), []byte(""))
 }
 
 func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {

@@ -13,6 +13,15 @@ type User struct {
 
 type Error struct {
 	Message string
+	Code    int
+}
+
+func (e *Error) Error() string {
+	return e.Message
+}
+
+func NewError(message string, code int) *Error {
+	return &Error{Message: message, Code: code}
 }
 
 var users = []User{
@@ -20,8 +29,14 @@ var users = []User{
 }
 
 func main() {
-	errorHandler := func(err error) any {
-		return Error{Message: err.Error()}
+	errorHandler := func(err error) (any, int) {
+		code := 500
+
+		if e, ok := err.(*Error); ok {
+			code = e.Code
+		}
+
+		return Error{Message: err.Error()}, code
 	}
 
 	r := robin.New(&robin.Options{ErrorHandler: errorHandler})

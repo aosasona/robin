@@ -19,7 +19,7 @@ func (q *query[_, _]) Type() ProcedureType {
 }
 
 func (q *query[_, _]) StripIllegalChars() {
-	compressedProcedureNameRegex.ReplaceAll([]byte(q.name), []byte(""))
+	procedureNameRegex.ReplaceAll([]byte(q.name), []byte(""))
 }
 
 func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
