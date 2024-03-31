@@ -21,11 +21,14 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	response["data"] = nil
 
 	if err := json.NewDecoder(ctx.Request.Body).Decode(&data); err != nil {
-		if r.debug {
+		if r.debug && err.Error() != "EOF" {
 			slog.Error("Failed to decode request body", slog.String("error", err.Error()))
 		}
 
-		return invalidTypesError(procedure.PayloadInterface(), data.Payload)
+		// CAVEAT: sending an empty body can cause a panic here
+		if err = invalidTypesError(procedure.PayloadInterface(), data.Payload); err != nil {
+			return err
+		}
 	}
 
 	result, err := procedure.Call(ctx, data.Payload)

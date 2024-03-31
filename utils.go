@@ -8,6 +8,10 @@ import (
 )
 
 func guardedCast[Target any](value any, wantValue Target) (Target, error) {
+	if value == nil {
+		return wantValue, nil
+	}
+
 	params, ok := value.(Target)
 
 	if !ok {
@@ -37,6 +41,10 @@ func invalidTypesError(expected, got any) error {
 	expectedTypeOf := reflect.TypeOf(expected)
 	gotTypeOf := reflect.TypeOf(got)
 
+	if expectedTypeOf == nil || gotTypeOf == nil {
+		return nil
+	}
+
 	expectedType := expectedTypeOf.Name()
 	gotType := gotTypeOf.Name()
 
@@ -50,6 +58,11 @@ func invalidTypesError(expected, got any) error {
 
 	expectedType = strings.ReplaceAll(expectedType, "\"", "")
 	gotType = strings.ReplaceAll(gotType, "\"", "")
+
+	// If they are the same, we have overridden the gotten type in the guardedCast function, we will assume the gotten type is nil
+	if expectedType == gotType {
+		gotType = "nil"
+	}
 
 	return InternalError{Reason: "Invalid types, expected " + expectedType + ", got " + gotType}
 }

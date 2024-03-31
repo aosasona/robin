@@ -95,7 +95,7 @@ func getUser(_ *robin.Context, id int) (User, error) {
 	return User{}, Error{Message: "User not found", Code: 400}
 }
 
-func getUsers(ctx *robin.Context, _ string) ([]User, error) {
+func getUsers(ctx *robin.Context, _ any) ([]User, error) {
 	return users, nil
 }
 
