@@ -42,10 +42,17 @@ type (
 	}
 
 	Context struct {
-		Request  *http.Request
+		// The raw incoming request
+		Request *http.Request
+
+		// The raw response writer
 		Response http.ResponseWriter
 
-		// TODO: add fields for extracting body, query, etc
+		// The name of the procedure
+		ProcedureName string
+
+		// The type of the procedure
+		ProcedureType ProcedureType
 	}
 )
 
@@ -115,21 +122,23 @@ func (r *Robin) Handler() http.HandlerFunc {
 }
 
 func (r *Robin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	var err error
+
 	ctx := &Context{Request: req, Response: w}
 
-	procedureType, procedureName, err := r.getProcedureMetaFromURL(req.URL)
+	ctx.ProcedureType, ctx.ProcedureName, err = r.getProcedureMetaFromURL(req.URL)
 	if err != nil {
 		r.sendError(w, err)
 		return
 	}
 
-	procedure, found := r.findProcedure(procedureName, procedureType)
+	procedure, found := r.findProcedure(ctx.ProcedureName, ctx.ProcedureType)
 	if !found {
 		r.sendError(w, InternalError{Reason: "Procedure not found"})
 		return
 	}
 
-	switch ProcedureType(procedureType) {
+	switch ProcedureType(ctx.ProcedureType) {
 	case ProcedureTypeQuery, ProcedureTypeMutation:
 		err := r.handleProcedureCall(ctx, *procedure)
 		if err != nil {
@@ -137,7 +146,7 @@ func (r *Robin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	default:
-		r.sendError(w, InternalError{Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(procedureType)})
+		r.sendError(w, InternalError{Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(ctx.ProcedureType)})
 		return
 	}
 }
