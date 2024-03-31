@@ -1,6 +1,7 @@
 package robin
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -165,7 +166,14 @@ func (r *Robin) sendError(w http.ResponseWriter, err error) {
 	}
 
 	errorResp, code := r.errorHandler(err)
-	jsonResp := fmt.Sprintf(`{"error": "%s"}`, string(errorResp))
+	errMap := map[string]string{"error": string(errorResp)}
+	jsonResp, err := json.Marshal(errMap)
+	if err != nil {
+		slog.Error("Failed to marshal error response", slog.String("error", err.Error()))
+		w.WriteHeader(500)
+		w.Write([]byte("Internal server error"))
+		return
+	}
 
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(code)

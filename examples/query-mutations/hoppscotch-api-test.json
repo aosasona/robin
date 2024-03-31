@@ -1,0 +1,126 @@
+{
+  "v": 2,
+  "name": "Robin",
+  "folders": [],
+  "requests": [
+    {
+      "method": "POST",
+      "preRequestScript": "",
+      "name": "getUser",
+      "v": "3",
+      "testScript": "",
+      "params": [],
+      "body": {
+        "body": "{\n  \"d\": 4\n}",
+        "contentType": "application/json"
+      },
+      "auth": {
+        "authActive": true,
+        "authType": "inherit"
+      },
+      "endpoint": "http://localhost:8080/_robin?__proc=q__getUser",
+      "headers": [],
+      "requestVariables": []
+    },
+    {
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "name": "addUser",
+      "method": "POST",
+      "body": {
+        "body": "{\n  \"d\": {\n    \"name\": \"Ayodeji\"\n  }\n}",
+        "contentType": "application/json"
+      },
+      "headers": [],
+      "requestVariables": [],
+      "preRequestScript": "",
+      "v": "3",
+      "testScript": "",
+      "endpoint": "http://localhost:8080/_robin?__proc=m__addUser",
+      "params": []
+    },
+    {
+      "v": "3",
+      "endpoint": "http://localhost:8080/_robin?__proc=q__getUsersByIds",
+      "name": "getUsersByIds",
+      "params": [],
+      "headers": [],
+      "method": "POST",
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "preRequestScript": "",
+      "testScript": "",
+      "body": {
+        "contentType": "application/json",
+        "body": "{\n  \"d\": [1, 3, 5]\n}"
+      },
+      "requestVariables": []
+    },
+    {
+      "v": "3",
+      "endpoint": "http://localhost:8080/_robin?__proc=q__getUsers",
+      "name": "getUsers",
+      "params": [],
+      "headers": [],
+      "method": "POST",
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "preRequestScript": "",
+      "testScript": "",
+      "body": {
+        "contentType": null,
+        "body": "{\n  \"d\": [1, 3, 5]\n}z"
+      },
+      "requestVariables": []
+    },
+    {
+      "v": "3",
+      "endpoint": "http://localhost:8080/_robin?__proc=q__getUsers",
+      "name": "Ping",
+      "params": [],
+      "headers": [],
+      "method": "POST",
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "preRequestScript": "",
+      "testScript": "",
+      "body": {
+        "contentType": null,
+        "body": "{\n  \"d\": [1, 3, 5]\n}z"
+      },
+      "requestVariables": []
+    },
+    {
+      "v": "3",
+      "endpoint": "http://localhost:8080/_robin?__proc=q__ping",
+      "name": "deleteUser",
+      "params": [],
+      "headers": [],
+      "method": "POST",
+      "auth": {
+        "authType": "inherit",
+        "authActive": true
+      },
+      "preRequestScript": "",
+      "testScript": "",
+      "body": {
+        "contentType": null,
+        "body": "{\n  \"d\": [1, 3, 5]\n}z"
+      },
+      "requestVariables": []
+    }
+  ],
+  "auth": {
+    "authActive": true,
+    "authType": "none"
+  },
+  "headers": []
+}

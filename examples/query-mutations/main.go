@@ -78,7 +78,7 @@ func main() {
 	// server.ListenAndServe()
 }
 
-func ping(ctx *robin.Context, _ string) (string, error) {
+func ping(ctx *robin.Context, _ any) (string, error) {
 	return "pong", nil
 }
 
