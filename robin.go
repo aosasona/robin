@@ -122,6 +122,14 @@ func (r *Robin) Handler() http.HandlerFunc {
 }
 
 func (r *Robin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	defer func(r *Robin) {
+		if e := recover(); e != nil {
+			r.sendError(w, InternalError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
+		}
+	}(r)
+
+	defer req.Body.Close()
+
 	var err error
 
 	ctx := &Context{Request: req, Response: w}
