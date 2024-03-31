@@ -1,12 +1,16 @@
 package robin
 
+import (
+	"fmt"
+)
+
 type (
 	QueryFn[ReturnType any, ParamsType any] func(ctx *Context, body ParamsType) (ReturnType, error)
 
 	query[ReturnType any, ParamsType any] struct {
 		name   string
 		fn     QueryFn[ReturnType, ParamsType]
-		params ParamsType
+		params ParamsType // The type of the params that the query expects, this never really has a value, it's just used for "type checking" during runtime
 	}
 )
 
@@ -23,10 +27,13 @@ func (q *query[ReturnType, ParamsType]) PayloadInterface() any {
 }
 
 func (q *query[ReturnType, ParamsType]) Call(ctx *Context, rawParams any) (any, error) {
-	params, ok := rawParams.(ParamsType)
+	params, err := guardedCast(rawParams, q.params)
+	if err != nil {
+		return nil, err
+	}
 
-	if !ok {
-		return nil, InvalidTypes(q.params, rawParams)
+	if q.fn == nil {
+		return nil, InternalError{Reason: fmt.Sprintf("Procedure %s has no function attached", q.name)}
 	}
 
 	return q.fn(ctx, params)

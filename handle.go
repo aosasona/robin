@@ -25,7 +25,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 			slog.Error("Failed to decode request body", slog.String("error", err.Error()))
 		}
 
-		return InvalidTypes(procedure.PayloadInterface(), data.Payload)
+		return invalidTypesError(procedure.PayloadInterface(), data.Payload)
 	}
 
 	result, err := procedure.Call(ctx, data.Payload)
@@ -34,6 +34,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	}
 
 	if result != nil {
+		response["data"] = result
 	}
 
 	strResponse, err := json.Marshal(response)

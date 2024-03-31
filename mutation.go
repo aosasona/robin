@@ -1,5 +1,7 @@
 package robin
 
+import "fmt"
+
 type (
 	MutationFn[ReturnType any, BodyType any] func(ctx *Context, body BodyType) (ReturnType, error)
 
@@ -23,10 +25,13 @@ func (m *mutation[_, _]) PayloadInterface() any {
 }
 
 func (m *mutation[ReturnType, BodyType]) Call(ctx *Context, rawBody any) (any, error) {
-	body, ok := rawBody.(BodyType)
+	body, err := guardedCast(rawBody, m.body)
+	if err != nil {
+		return nil, err
+	}
 
-	if !ok {
-		return nil, InvalidTypes(m.body, rawBody)
+	if m.fn == nil {
+		return nil, InternalError{Reason: fmt.Sprintf("Procedure %s has no function attached", m.name)}
 	}
 
 	return m.fn(ctx, body)

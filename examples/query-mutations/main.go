@@ -25,8 +25,8 @@ func NewError(message string, code int) *Error {
 }
 
 type User struct {
-	ID   int
-	Name string
+	ID   int    `json:"id,omitempty"`
+	Name string `json:"name"`
 }
 
 var users = []User{
@@ -57,6 +57,7 @@ func main() {
 
 	r.Add(robin.Query("ping", ping)).
 		Add(robin.Query("getUser", getUser)).
+		Add(robin.Query("getUsersByIds", getUsersByIds)).
 		Add(robin.Query("getUsers", getUsers)).
 		Add(robin.Mutation("addUser", addUser)).
 		Add(robin.Mutation("deleteUser", deleteUser))
@@ -96,6 +97,21 @@ func getUser(_ *robin.Context, id int) (User, error) {
 
 func getUsers(ctx *robin.Context, _ string) ([]User, error) {
 	return users, nil
+}
+
+func getUsersByIds(_ *robin.Context, ids []int) ([]User, error) {
+	var foundUsers []User
+
+	for _, id := range ids {
+		for _, user := range users {
+			if user.ID == id {
+				foundUsers = append(foundUsers, user)
+				break
+			}
+		}
+	}
+
+	return foundUsers, nil
 }
 
 func addUser(_ *robin.Context, user User) (User, error) {

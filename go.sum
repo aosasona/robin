@@ -1,2 +1,4 @@
+github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
+github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 go.trulyao.dev/mirror v0.0.0-20240112230936-5cf9148e332f h1:gXKz7BVkYnuKKvwmjucIARnZZ3IvLNkGQMHIlmpOERU=
 go.trulyao.dev/mirror v0.0.0-20240112230936-5cf9148e332f/go.mod h1:b/2fYR8XPto6R9QJf6/AOfIgAKWe86DZFMvxUgUFHeU=

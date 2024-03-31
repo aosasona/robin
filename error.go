@@ -1,10 +1,5 @@
 package robin
 
-import (
-	"reflect"
-	"strings"
-)
-
 type (
 	ErrorHandler func(error) ([]byte, int)
 
@@ -26,14 +21,4 @@ func (e Error) Error() string {
 
 func (ie InternalError) Error() string {
 	return ie.Reason
-}
-
-func InvalidTypes(expected, got any) error {
-	expectedType := reflect.TypeOf(expected).Name()
-	gotType := reflect.TypeOf(got).String()
-
-	expectedType = strings.ReplaceAll(expectedType, "\"", "")
-	gotType = strings.ReplaceAll(gotType, "\"", "")
-
-	return InternalError{Reason: "Invalid types, expected " + expectedType + ", got " + gotType}
 }
