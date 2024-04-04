@@ -15,7 +15,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 			Payload any `json:"d"`
 		}{Payload: procedure.PayloadInterface()}
 
-		response map[string]interface{} = make(map[string]interface{})
+		response = make(map[string]interface{})
 	)
 
 	response["data"] = nil
@@ -61,25 +61,24 @@ func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, er
 	// Queries can only be issued via GET requests, and Mutations can only be issued via POST requests but in both cases, the procedure name is attached to the URL query
 	proc := url.Query().Get(ProcNameKey)
 	if strings.TrimSpace(proc) == "" {
-		return "", "", errors.New("No procedure name provided")
+		return "", "", errors.New("no procedure name provided")
 	}
 
 	procParts := strings.Split(proc, ProcSeparator)
 	if len(procParts) != 2 {
-		return "", "", fmt.Errorf("Invalid procedure param provided in URL, expected format (q|m)%s[name] e.g q%sgetUser", ProcSeparator, ProcSeparator)
+		return "", "", fmt.Errorf("invalid procedure param provided in URL, expected format (q|m)%s[name] e.g q%sgetUser", ProcSeparator, ProcSeparator)
 	}
 
-	shortProcType := procParts[0]
+	shortProcType, procedureName := procParts[0], procParts[1]
+
 	switch shortProcType {
 	case "q":
 		procedureType = ProcedureTypeQuery
 	case "m":
 		procedureType = ProcedureTypeMutation
 	default:
-		return "", "", errors.New("No procedure name provided")
+		return "", "", errors.New("no procedure name provided")
 	}
-
-	procedureName = procParts[1]
 
 	return procedureType, procedureName, nil
 }

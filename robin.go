@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"regexp"
+	"strings"
 )
 
 const (
 	ProcSeparator = "__"
 	ProcNameKey   = ProcSeparator + "proc"
+
+	EnvRobinEnableTSGen = "ROBIN_ENABLE_TS_GEN"
 )
 
 var procedureNameRegex = regexp.MustCompile(`(?m)[^a-zA-Z0-9]`)
@@ -32,6 +36,12 @@ type Procedure interface {
 
 type (
 	Robin struct {
+		// bindingsPath is the path to the generated typescript schema
+		bindingsPath string
+
+		// enableTypescriptGen will enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
+		enableTypescriptGen bool
+
 		// Enable debug mode to log useful info
 		debug bool
 
@@ -58,31 +68,17 @@ type (
 )
 
 type Options struct {
+	// BindingPath is the path to the generated typescript schema
+	BindingPath string
+
+	// EnableSchemaGeneration will enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
+	EnableSchemaGeneration bool
+
+	// EnableDebugMode will enable debug mode to log useful info
 	EnableDebugMode bool
 
 	// ErrorHandler is a function that will be called when an error occurs, it should ideally return a marshallable struct
 	ErrorHandler ErrorHandler
-}
-
-func DefaultErrorHandler(err error) ([]byte, int) {
-	var (
-		code    int    = 500
-		message string = err.Error()
-	)
-
-	if e, ok := err.(Error); ok {
-		message = e.Message
-
-		if e.Code >= 400 && e.Code < 600 {
-			code = e.Code
-		}
-	} else if e, ok := err.(InternalError); ok {
-		message = e.Reason
-
-		slog.Error("An internal error occurred", slog.String("reason", e.Reason), slog.Any("originalError", e.OriginalError.Error()))
-	}
-
-	return []byte(message), code
 }
 
 // Robin is just going to be an adapter for something like Echo
@@ -92,10 +88,17 @@ func New(opts *Options) *Robin {
 		errorHandler = opts.ErrorHandler
 	}
 
+	enableTSGen := opts.EnableSchemaGeneration
+	// The environment variable takes precedence over whatver is set in code
+	if v, isSet := os.LookupEnv(EnvRobinEnableTSGen); isSet {
+		enableTSGen = strings.ToLower(v) == "true" || v == "1"
+	}
+
 	return &Robin{
-		debug:        opts.EnableDebugMode,
-		procedures:   make(map[string]Procedure),
-		errorHandler: errorHandler,
+		enableTypescriptGen: enableTSGen,
+		debug:               opts.EnableDebugMode,
+		procedures:          make(map[string]Procedure),
+		errorHandler:        errorHandler,
 	}
 }
 
@@ -118,11 +121,11 @@ func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 	return r.Add(procedure)
 }
 
-func (r *Robin) Handler() http.HandlerFunc {
-	return r.ServeHTTP
+func (r *Robin) Build() *Builder {
+	return &Builder{bindingsPath: r.bindingsPath, robin: r}
 }
 
-func (r *Robin) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 	defer func(r *Robin) {
 		if e := recover(); e != nil {
 			r.sendError(w, InternalError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
@@ -175,7 +178,7 @@ func (r *Robin) sendError(w http.ResponseWriter, err error) {
 		return
 	}
 
-	w.Header().Add("content-type", "application/json")
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write([]byte(jsonResp))
 }
