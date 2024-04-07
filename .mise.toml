@@ -1,0 +1,10 @@
+settings.experimental = true
+
+[tools]
+go = "1.22.2"
+watchexec = "1.25.1"
+
+[tasks."example:qm"]
+description = "Run the example in query-mutations"
+run = "go run ./examples/query-mutations/main.go"
+sources = ["./*.go", "./examples/query-mutations/main.go"]

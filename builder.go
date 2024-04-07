@@ -12,6 +12,7 @@ type Builder struct {
 	// Path to the generated typescript schema
 	bindingsPath string
 
+	// Internal pointer to the current robin instance
 	robin *Robin
 }
 

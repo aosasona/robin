@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"net/http/pprof"
-	_ "net/http/pprof"
-
 	"go.trulyao.dev/robin"
 )
 
@@ -72,8 +69,6 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("POST /_robin", r.Handler())
-	mux.Handle("GET /profile/heap", pprof.Handler("heap"))
-	mux.Handle("GET /profile/trace", pprof.Handler("trace"))
 
 	fmt.Printf("Server is running on port %d", port)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
