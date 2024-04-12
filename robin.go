@@ -163,11 +163,13 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// TODO: split this into another function that handles errors from the robin handlers
 func (r *Robin) sendError(w http.ResponseWriter, err error) {
 	if r.debug {
 		slog.Error("An error occurred in handler", slog.Any("error", err))
 	}
 
+	// TODO: the error handler should be able to return anything it wants and then we decide if we want to put it in a `data` field in the map struct or not
 	errorResp, code := r.errorHandler(err)
 	errMap := map[string]string{"error": string(errorResp)}
 	jsonResp, err := json.Marshal(errMap)
