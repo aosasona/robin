@@ -26,7 +26,7 @@ func guardedCast[Target any](value any, wantValue Target) (Target, error) {
 			}
 
 			// Structs, arrays etc are decoded into map[key]|[] interface{} by the JSON decoder, so we can use mapstructure to decode them into the expected type
-		case reflect.Struct, reflect.Map, reflect.Slice, reflect.Array:
+		case reflect.Struct, reflect.Slice, reflect.Array:
 			mapstructure.Decode(value, &params)
 
 		default:
