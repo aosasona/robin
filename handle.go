@@ -42,7 +42,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 
 	strResponse, err := json.Marshal(response)
 	if err != nil {
-		return InternalError{Reason: "Failed to marshal response", OriginalError: err}
+		return RobinError{Reason: "Failed to marshal response", OriginalError: err}
 	}
 
 	ctx.Response.Header().Add("content-type", "application/json")

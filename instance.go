@@ -8,7 +8,7 @@ import (
 
 // Technically this may not be a "builder" but the name sort of fits
 
-type Builder struct {
+type Instance struct {
 	// Path to the generated typescript schema
 	bindingsPath string
 
@@ -16,11 +16,11 @@ type Builder struct {
 	robin *Robin
 }
 
-func (b *Builder) Handler() http.HandlerFunc {
+func (b *Instance) Handler() http.HandlerFunc {
 	return b.robin.serveHTTP
 }
 
-func (b *Builder) ExportTsBindings(optPath ...string) error {
+func (b *Instance) ExportTsBindings(optPath ...string) error {
 	path := b.bindingsPath
 
 	if len(optPath) > 0 {

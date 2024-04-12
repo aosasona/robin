@@ -121,14 +121,14 @@ func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 	return r.Add(procedure)
 }
 
-func (r *Robin) Build() *Builder {
-	return &Builder{bindingsPath: r.bindingsPath, robin: r}
+func (r *Robin) Build() *Instance {
+	return &Instance{bindingsPath: r.bindingsPath, robin: r}
 }
 
 func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 	defer func(r *Robin) {
 		if e := recover(); e != nil {
-			r.sendError(w, InternalError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
+			r.sendError(w, RobinError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
 		}
 	}(r)
 
@@ -146,7 +146,7 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 
 	procedure, found := r.findProcedure(ctx.ProcedureName, ctx.ProcedureType)
 	if !found {
-		r.sendError(w, InternalError{Reason: "Procedure not found"})
+		r.sendError(w, RobinError{Reason: "Procedure not found"})
 		return
 	}
 
@@ -158,7 +158,7 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	default:
-		r.sendError(w, InternalError{Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(ctx.ProcedureType)})
+		r.sendError(w, RobinError{Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(ctx.ProcedureType)})
 		return
 	}
 }

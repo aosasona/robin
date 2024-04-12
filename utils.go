@@ -64,5 +64,5 @@ func invalidTypesError(expected, got any) error {
 		gotType = "nil"
 	}
 
-	return InternalError{Reason: "Invalid types, expected " + expectedType + ", got " + gotType}
+	return RobinError{Reason: "Invalid types, expected " + expectedType + ", got " + gotType}
 }

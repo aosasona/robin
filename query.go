@@ -33,7 +33,7 @@ func (q *query[ReturnType, ParamsType]) Call(ctx *Context, rawParams any) (any, 
 	}
 
 	if q.fn == nil {
-		return nil, InternalError{Reason: fmt.Sprintf("Procedure %s has no function attached", q.name)}
+		return nil, RobinError{Reason: fmt.Sprintf("Procedure %s has no function attached", q.name)}
 	}
 
 	return q.fn(ctx, params)

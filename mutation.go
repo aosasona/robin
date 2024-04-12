@@ -31,7 +31,7 @@ func (m *mutation[ReturnType, BodyType]) Call(ctx *Context, rawBody any) (any, e
 	}
 
 	if m.fn == nil {
-		return nil, InternalError{Reason: fmt.Sprintf("Procedure %s has no function attached", m.name)}
+		return nil, RobinError{Reason: fmt.Sprintf("Procedure %s has no function attached", m.name)}
 	}
 
 	return m.fn(ctx, body)
