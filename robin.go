@@ -14,7 +14,7 @@ const (
 	ProcSeparator = "__"
 	ProcNameKey   = ProcSeparator + "proc"
 
-	EnvRobinEnableTSGen = "ROBIN_ENABLE_TS_GEN"
+	EnvRobinEnableTSGen = "ROBIN_ENABLE_SCHEMA_GEN"
 )
 
 var procedureNameRegex = regexp.MustCompile(`(?m)[^a-zA-Z0-9]`)
