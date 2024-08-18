@@ -107,7 +107,10 @@ func (r *Robin) Add(procedure Procedure) *Robin {
 
 	if _, ok := r.procedures[procedure.Name()]; ok {
 		if r.debug {
-			slog.Warn("Attempted to add a duplicate procedure, skipping...", slog.String("procedureName", procedure.Name()))
+			slog.Warn(
+				"Attempted to add a duplicate procedure, skipping...",
+				slog.String("procedureName", procedure.Name()),
+			)
 		}
 
 		return r
@@ -158,7 +161,14 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	default:
-		r.sendError(w, RobinError{Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(ctx.ProcedureType)})
+		r.sendError(
+			w,
+			RobinError{
+				Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(
+					ctx.ProcedureType,
+				),
+			},
+		)
 		return
 	}
 }
