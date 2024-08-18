@@ -51,20 +51,6 @@ type (
 		// a function that will be called when an error occurs, if not provided, the default error handler will be used
 		errorHandler ErrorHandler
 	}
-
-	Context struct {
-		// The raw incoming request
-		Request *http.Request
-
-		// The raw response writer
-		Response http.ResponseWriter
-
-		// The name of the procedure
-		ProcedureName string
-
-		// The type of the procedure
-		ProcedureType ProcedureType
-	}
 )
 
 type Options struct {
