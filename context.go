@@ -1,6 +1,8 @@
 package robin
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type Context struct {
 	// The raw incoming request

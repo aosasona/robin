@@ -1,9 +1,5 @@
 package robin
 
-import (
-	_ "go.trulyao.dev/mirror"
-)
-
 type Schema[Request, Response any] struct {
 	Type           ProcedureType `mirror:"name:_type,type:'query'|'mutation'"`
 	Name           string        `mirror:"name"`
