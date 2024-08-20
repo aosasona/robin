@@ -1,6 +1,4 @@
-github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
-github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-go.trulyao.dev/mirror/v2 v2.0.1 h1:1YrUVKqPyD+gVCVD8mI4wGBYA+k9lM0XOxEU778R+LE=
-go.trulyao.dev/mirror/v2 v2.0.1/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
+github.com/go-viper/mapstructure/v2 v2.1.0 h1:gHnMa2Y/pIxElCH2GlZZ1lZSsn6XMtufpGyP1XxdC/w=
+github.com/go-viper/mapstructure/v2 v2.1.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 go.trulyao.dev/mirror/v2 v2.1.1 h1:fw2hcqv9qEiqLz10d/Ra1gNPV47porS9qAbHHUG6KPs=
 go.trulyao.dev/mirror/v2 v2.1.1/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
