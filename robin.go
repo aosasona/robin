@@ -39,13 +39,13 @@ type (
 		// bindingsPath is the path to the generated typescript schema
 		bindingsPath string
 
-		// enableTypescriptGen will enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
+		// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
 		enableTypescriptGen bool
 
 		// Enable debug mode to log useful info
 		debug bool
 
-		// a list of query and mutation procedures
+		// A list of query and mutation procedures
 		procedures map[string]Procedure
 
 		// a function that will be called when an error occurs, if not provided, the default error handler will be used

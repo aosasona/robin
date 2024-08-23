@@ -18,7 +18,18 @@ func guardedCast[Target any](value any, wantValue Target) (Target, error) {
 		switch reflect.TypeOf(wantValue).Kind() {
 		// Numbers are a bit tricky, they are automatically converted to float64 when unmarshalled from JSON, so we need to check for that and convert to what we expect
 		// If our expected param type is a number (int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, uint, float32, float64), we can convert the raw param to that type and use it
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+		case reflect.Int,
+			reflect.Int8,
+			reflect.Int16,
+			reflect.Int32,
+			reflect.Int64,
+			reflect.Uint,
+			reflect.Uint8,
+			reflect.Uint16,
+			reflect.Uint32,
+			reflect.Uint64,
+			reflect.Float32,
+			reflect.Float64:
 			if reflect.TypeOf(value).Kind() == reflect.Float64 {
 				params = reflect.ValueOf(value).Convert(reflect.TypeOf(wantValue)).Interface().(Target)
 			} else {
