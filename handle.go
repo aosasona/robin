@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/url"
 	"strings"
+
+	"go.trulyao.dev/robin/internal/guarded"
 )
 
 func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
@@ -26,16 +28,18 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 		}
 
 		// CAVEAT: sending an empty body can cause a panic here
-		if err = invalidTypesError(procedure.PayloadInterface(), data.Payload); err != nil {
+		if err = guarded.MakeCastError(procedure.PayloadInterface(), data.Payload); err != nil {
 			return err
 		}
 	}
 
+	// Call the procedure
 	result, err := procedure.Call(ctx, data.Payload)
 	if err != nil {
 		return err
 	}
 
+	// TODO: Allow returning nil in the case of procedures that don't return anything
 	if result != nil {
 		response["data"] = result
 	}
@@ -52,6 +56,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	return nil
 }
 
+// TODO: document
 func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, error) {
 	var (
 		procedureName string
@@ -66,7 +71,11 @@ func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, er
 
 	procParts := strings.Split(proc, ProcSeparator)
 	if len(procParts) != 2 {
-		return "", "", fmt.Errorf("invalid procedure param provided in URL, expected format (q|m)%s[name] e.g q%sgetUser", ProcSeparator, ProcSeparator)
+		return "", "", fmt.Errorf(
+			"invalid procedure param provided in URL, expected format (q|m)%s[name] e.g q%sgetUser",
+			ProcSeparator,
+			ProcSeparator,
+		)
 	}
 
 	shortProcType, procedureName := procParts[0], procParts[1]
@@ -83,6 +92,7 @@ func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, er
 	return procedureType, procedureName, nil
 }
 
+// TODO: document
 func (r *Robin) findProcedure(name string, procedureType ProcedureType) (*Procedure, bool) {
 	procedure, ok := r.procedures[name]
 	if !ok {

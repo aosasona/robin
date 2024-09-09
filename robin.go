@@ -35,14 +35,12 @@ type Procedure interface {
 	// The type of the procedure, one of 'query' or 'mutation'
 	Type() ProcedureType
 
-	// Return the payload type of the procedure (i.e. the type of the body of the request)
+	// Return an empty type that represents the payload that the procedure expects
+	// WARNING: whatever is returned here is only used for type inference/reflection during runtime; no value should be expected here
 	PayloadInterface() any
 
 	// Call the procedure with the given context and payload
 	Call(*Context, any) (any, error)
-
-	// Strip illegal characters from the procedure name
-	StripIllegalChars()
 }
 
 type (
@@ -109,8 +107,6 @@ func New(opts Options) *Robin {
 }
 
 func (r *Robin) Add(procedure Procedure) *Robin {
-	procedure.StripIllegalChars()
-
 	if _, ok := r.procedures[procedure.Name()]; ok {
 		if r.debug {
 			slog.Warn(
