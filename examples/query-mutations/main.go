@@ -55,7 +55,7 @@ func errorHandler(err error) ([]byte, int) {
 }
 
 func main() {
-	r := robin.New(&robin.Options{
+	r := robin.New(robin.Options{
 		ErrorHandler:    errorHandler,
 		EnableDebugMode: true,
 	}).

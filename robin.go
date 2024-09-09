@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// TODO: add robin.Void type to represent a procedure that doesn't return any response or take any payload
+
 const (
 	ProcSeparator = "__"
 	ProcNameKey   = ProcSeparator + "proc"
@@ -27,17 +29,29 @@ const (
 )
 
 type Procedure interface {
+	// The name of the procedure
 	Name() string
+
+	// The type of the procedure, one of 'query' or 'mutation'
 	Type() ProcedureType
+
+	// Return the payload type of the procedure (i.e. the type of the body of the request)
 	PayloadInterface() any
+
+	// Call the procedure with the given context and payload
 	Call(*Context, any) (any, error)
+
+	// Strip illegal characters from the procedure name
 	StripIllegalChars()
 }
 
 type (
 	Robin struct {
-		// bindingsPath is the path to the generated typescript schema
+		// Path to the generated typescript schema
 		bindingsPath string
+
+		// Enable the cache for the resolved procedure types
+		cacheResolvedTypes bool
 
 		// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
 		enableTypescriptGen bool
@@ -48,27 +62,32 @@ type (
 		// A list of query and mutation procedures
 		procedures map[string]Procedure
 
-		// a function that will be called when an error occurs, if not provided, the default error handler will be used
+		// A function that will be called when an error occurs, if not provided, the default error handler will be used
 		errorHandler ErrorHandler
+
+		// TODO: add resolved types cache
 	}
 )
 
 type Options struct {
-	// BindingPath is the path to the generated typescript schema
+	// Path to the generated typescript schema
 	BindingPath string
 
-	// EnableSchemaGeneration will enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
+	// Enable the cache for the resolved procedure types
+	CacheResolvedTypes bool
+
+	// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
 	EnableSchemaGeneration bool
 
-	// EnableDebugMode will enable debug mode to log useful info
+	// Enable debug mode to log useful info
 	EnableDebugMode bool
 
-	// ErrorHandler is a function that will be called when an error occurs, it should ideally return a marshallable struct
+	// A function that will be called when an error occurs, it should ideally return a marshallable struct
 	ErrorHandler ErrorHandler
 }
 
 // Robin is just going to be an adapter for something like Echo
-func New(opts *Options) *Robin {
+func New(opts Options) *Robin {
 	errorHandler := DefaultErrorHandler
 	if opts.ErrorHandler != nil {
 		errorHandler = opts.ErrorHandler
@@ -82,6 +101,7 @@ func New(opts *Options) *Robin {
 
 	return &Robin{
 		enableTypescriptGen: enableTSGen,
+		cacheResolvedTypes:  opts.CacheResolvedTypes,
 		debug:               opts.EnableDebugMode,
 		procedures:          make(map[string]Procedure),
 		errorHandler:        errorHandler,
