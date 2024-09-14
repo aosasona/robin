@@ -19,6 +19,9 @@ type (
 		// The type of the body that the mutation expects
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
 		body BodyType
+
+		// Whether the mutation expects a payload or not
+		expectsPayload bool
 	}
 )
 
@@ -51,10 +54,19 @@ func (m *mutation[ReturnType, BodyType]) Call(ctx *Context, rawBody any) (any, e
 	return m.fn(ctx, body)
 }
 
+// Returns whether the mutation expects a payload or not
+func (m *mutation[_, _]) ExpectsPayload() bool {
+	return m.expectsPayload
+}
+
 // Creates a new mutation with the given name and handler function
 func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
 	name = string(procedureNameRegex.ReplaceAll([]byte(name), []byte("")))
-	return &mutation[R, B]{name: name, fn: fn}
+
+	var body B
+	expectsPayload := guarded.ExpectsPayload(body)
+
+	return &mutation[R, B]{name: name, fn: fn, expectsPayload: expectsPayload}
 }
 
 var _ Procedure = (*mutation[any, any])(nil)

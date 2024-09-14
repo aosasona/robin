@@ -8,9 +8,18 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/agnivade/levenshtein"
+	"go.trulyao.dev/robin/types"
 )
 
-// TODO: add robin.Void type to represent a procedure that doesn't return any response or take any payload
+// Re-exports
+type (
+	Void = types.Void
+
+	Error      = types.Error
+	RobinError = types.RobinError
+)
 
 const (
 	ProcSeparator = "__"
@@ -39,6 +48,10 @@ type Procedure interface {
 	// WARNING: whatever is returned here is only used for type inference/reflection during runtime; no value should be expected here
 	PayloadInterface() any
 
+	// Check if the procedure expects a payload or not
+	// This is useful for procedures that don't expect a payload, so we can instantly skip the payload decoding step
+	ExpectsPayload() bool
+
 	// Call the procedure with the given context and payload
 	Call(*Context, any) (any, error)
 }
@@ -47,9 +60,6 @@ type (
 	Robin struct {
 		// Path to the generated typescript schema
 		bindingsPath string
-
-		// Enable the cache for the resolved procedure types
-		cacheResolvedTypes bool
 
 		// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
 		enableTypescriptGen bool
@@ -62,17 +72,12 @@ type (
 
 		// A function that will be called when an error occurs, if not provided, the default error handler will be used
 		errorHandler ErrorHandler
-
-		// TODO: add resolved types cache
 	}
 )
 
 type Options struct {
 	// Path to the generated typescript schema
 	BindingPath string
-
-	// Enable the cache for the resolved procedure types
-	CacheResolvedTypes bool
 
 	// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
 	EnableSchemaGeneration bool
@@ -99,7 +104,6 @@ func New(opts Options) *Robin {
 
 	return &Robin{
 		enableTypescriptGen: enableTSGen,
-		cacheResolvedTypes:  opts.CacheResolvedTypes,
 		debug:               opts.EnableDebugMode,
 		procedures:          make(map[string]Procedure),
 		errorHandler:        errorHandler,
@@ -130,10 +134,12 @@ func (r *Robin) Build() *Instance {
 	return &Instance{bindingsPath: r.bindingsPath, robin: r}
 }
 
+// serveHTTP is the main handler for all incoming HTTP requests
+// It takes the request, and transforms it into a Robin Context, then calls the appropriate procedure if present
 func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 	defer func(r *Robin) {
 		if e := recover(); e != nil {
-			r.sendError(w, RobinError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
+			r.sendError(w, types.RobinError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
 		}
 	}(r)
 
@@ -142,7 +148,6 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 	var err error
 
 	ctx := &Context{Request: req, Response: w}
-
 	ctx.ProcedureType, ctx.ProcedureName, err = r.getProcedureMetaFromURL(req.URL)
 	if err != nil {
 		r.sendError(w, err)
@@ -151,7 +156,10 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 
 	procedure, found := r.findProcedure(ctx.ProcedureName, ctx.ProcedureType)
 	if !found {
-		r.sendError(w, RobinError{Reason: "Procedure not found"})
+		r.sendError(
+			w,
+			r.makeMissingProcedureError(ctx.ProcedureName, ctx.ProcedureType),
+		)
 		return
 	}
 
@@ -162,10 +170,11 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 			r.sendError(w, err)
 			return
 		}
+
 	default:
 		r.sendError(
 			w,
-			RobinError{
+			types.RobinError{
 				Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(
 					ctx.ProcedureType,
 				),
@@ -173,6 +182,43 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 		)
 		return
 	}
+}
+
+// makeMissingProcedureError creates an error that indicates that a procedure was not found and suggests the closest procedure name if any
+func (r *Robin) makeMissingProcedureError(procedureName string, procedureType ProcedureType) error {
+	var (
+		closest         Procedure
+		closestDistance int
+		errString       = fmt.Sprintf(
+			"Procedure `%s` (%s) not found",
+			procedureName,
+			procedureType,
+		)
+	)
+
+	for name, proc := range r.procedures {
+		distance := levenshtein.ComputeDistance(
+			strings.ToLower(name),
+			strings.ToLower(procedureName),
+		)
+
+		if closest == nil || distance < closestDistance {
+			closest = proc
+			closestDistance = distance
+		}
+	}
+
+	if closest != nil {
+		errString = fmt.Sprintf(
+			"Procedure `%s` (%s) not found, did you mean `%s` (%s)?",
+			procedureName,
+			procedureType,
+			closest.Name(),
+			closest.Type(),
+		)
+	}
+
+	return types.RobinError{Reason: errString}
 }
 
 // TODO: split this into another function that handles errors from the robin handlers

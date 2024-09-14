@@ -19,6 +19,9 @@ type (
 		// The type of the params that the query expects
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
 		params ParamsType
+
+		// Whether the query expects a payload or not
+		expectsPayload bool
 	}
 )
 
@@ -51,10 +54,19 @@ func (q *query[ReturnType, ParamsType]) Call(ctx *Context, rawParams any) (any, 
 	return q.fn(ctx, params)
 }
 
+// ExpectsPayload returns whether the query expects a payload or not
+func (q *query[_, _]) ExpectsPayload() bool {
+	return q.expectsPayload
+}
+
 // Creates a new query with the given name and handler function
 func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
 	name = string(procedureNameRegex.ReplaceAll([]byte(name), []byte("")))
-	return &query[R, B]{name: name, fn: fn}
+
+	var body B
+	expectsPayload := guarded.ExpectsPayload(body)
+
+	return &query[R, B]{name: name, fn: fn, expectsPayload: expectsPayload}
 }
 
 var _ Procedure = (*query[any, any])(nil)

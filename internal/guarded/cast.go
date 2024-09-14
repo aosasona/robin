@@ -14,26 +14,29 @@ import (
 // Numbers are a bit tricky, they are automatically converted to float64 when unmarshalled from JSON, so we need to check for that and convert to what we expect
 //
 // See implementation for more details
-// TODO: revisit this
 func CastType[Target any](from any, to Target) (Target, error) {
 	if from == nil {
 		return to, nil
 	}
 
 	// If the value is already of the correct type, we can just return it
-	params, ok := from.(Target)
-	if ok {
-		return params, nil
+	if target, ok := from.(Target); ok {
+		return target, nil
+	}
+
+	// If our target is the void type (types.Void) and the value is nil, we can just return the target
+	void := types.Void{}
+	if reflect.TypeOf(to).Kind() == reflect.TypeOf(void).Kind() && from == nil {
+		return to, nil
 	}
 
 	// Attempt to cast the value to the correct type
-	targetType := reflect.TypeOf(to)
 
-	// First we have to make sure that the value is assignable to the targetType
-	if !targetType.AssignableTo(reflect.TypeOf(from)) &&
-		!targetType.ConvertibleTo(reflect.TypeOf(from)) {
-		return to, MakeCastError(to, from)
-	}
+	var (
+		targetType = reflect.TypeOf(to)
+		params     Target
+		ok         bool
+	)
 
 	switch targetType.Kind() {
 	// Numbers are a bit tricky, they are automatically converted to float64 when unmarshalled from JSON, so we need to check for that and convert to what we expect

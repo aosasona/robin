@@ -20,17 +20,27 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 		response = make(map[string]interface{})
 	)
 
-	response["data"] = nil
+	response["data"] = Void{}
 
-	if err := json.NewDecoder(ctx.Request.Body).Decode(&data); err != nil {
-		if r.debug && err.Error() != "EOF" {
-			slog.Error("Failed to decode request body", slog.String("error", err.Error()))
-		}
+	// Decode the request body into the "typeless" payload field of the data struct
+	if procedure.ExpectsPayload() {
+		if err := json.NewDecoder(ctx.Request.Body).Decode(&data); err != nil {
+			if r.debug && err.Error() != "EOF" {
+				slog.Error("Failed to decode request body", slog.String("error", err.Error()))
+			}
 
-		// CAVEAT: sending an empty body can cause a panic here
-		if err = guarded.MakeCastError(procedure.PayloadInterface(), data.Payload); err != nil {
-			return err
+			// If the error is EOF, it means that the request body was empty, so we set the payload to Void
+			if err.Error() == "EOF" {
+				data.Payload = Void{}
+			} else {
+				if err = guarded.MakeCastError(procedure.PayloadInterface(), data.Payload); err != nil {
+					return err
+				}
+			}
 		}
+	} else {
+		// If the procedure doesn't expect a payload, we set the payload to Void
+		data.Payload = Void{}
 	}
 
 	// Call the procedure
@@ -39,7 +49,6 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 		return err
 	}
 
-	// TODO: Allow returning nil in the case of procedures that don't return anything
 	if result != nil {
 		response["data"] = result
 	}
