@@ -70,7 +70,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("POST /_robin", r.Handler())
 
-	fmt.Printf("Server is running on port %d", port)
+	fmt.Printf("Server is running on port %d\n", port)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 
 	// Or using the default handler, you will have to modify your endpoint to just `/` in the client side
@@ -83,7 +83,7 @@ func main() {
 	// server.ListenAndServe()
 }
 
-func ping(ctx *robin.Context, _ any) (string, error) {
+func ping(ctx *robin.Context, _ robin.Void) (string, error) {
 	return "pong", nil
 }
 
@@ -100,7 +100,7 @@ func getUser(_ *robin.Context, id int) (User, error) {
 	return User{}, Error{Message: "User not found", Code: 400}
 }
 
-func getUsers(ctx *robin.Context, _ any) ([]User, error) {
+func getUsers(ctx *robin.Context, _ robin.Void) ([]User, error) {
 	return users, nil
 }
 
