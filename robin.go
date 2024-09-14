@@ -110,6 +110,8 @@ func New(opts Options) *Robin {
 	}
 }
 
+// Add a new procedure to the Robin instance
+// If a procedure with the same name already exists, it will be skipped and a warning will be logged in debug mode
 func (r *Robin) Add(procedure Procedure) *Robin {
 	if _, ok := r.procedures[procedure.Name()]; ok {
 		if r.debug {
@@ -126,12 +128,19 @@ func (r *Robin) Add(procedure Procedure) *Robin {
 	return r
 }
 
+// Add a new procedure to the Robin instance - an alias for `Add`
 func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 	return r.Add(procedure)
 }
 
+// Build the Robin instance
 func (r *Robin) Build() *Instance {
-	return &Instance{bindingsPath: r.bindingsPath, robin: r}
+	return &Instance{
+		robin:        r,
+		bindingsPath: r.bindingsPath,
+		port:         8081,
+		route:        "_robin",
+	}
 }
 
 // serveHTTP is the main handler for all incoming HTTP requests

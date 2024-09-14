@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 
 	"go.trulyao.dev/robin"
 )
@@ -67,11 +66,16 @@ func main() {
 		Add(robin.Mutation("deleteUser", deleteUser)).
 		Build()
 
-	mux := http.NewServeMux()
-	mux.Handle("POST /_robin", r.Handler())
+	r.ExportTSBindings()
+	r.Serve()
 
-	fmt.Printf("Server is running on port %d\n", port)
-	http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
+	// Alternatively, you can use the default handler with your own mux and server
+	//
+	// mux := http.NewServeMux()
+	// mux.Handle("POST /_robin", r.Handler())
+	//
+	// fmt.Printf("Server is running on port %d\n", port)
+	// http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 
 	// Or using the default handler, you will have to modify your endpoint to just `/` in the client side
 	//
