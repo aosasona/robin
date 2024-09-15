@@ -13,12 +13,22 @@ import (
 	"go.trulyao.dev/robin/types"
 )
 
-// Re-exports
+// Re-exported types
 type (
 	Void = types.Void
 
 	Error      = types.Error
 	RobinError = types.RobinError
+
+	ProcedureType = types.ProcedureType
+	Procedure     = types.Procedure
+	Context       = types.Context
+)
+
+// Re-exported constants
+const (
+	ProcedureTypeQuery    ProcedureType = types.ProcedureTypeQuery
+	ProcedureTypeMutation ProcedureType = types.ProcedureTypeMutation
 )
 
 const (
@@ -29,32 +39,6 @@ const (
 )
 
 var procedureNameRegex = regexp.MustCompile(`(?m)[^a-zA-Z0-9]`)
-
-type ProcedureType string
-
-const (
-	ProcedureTypeQuery    ProcedureType = "query"
-	ProcedureTypeMutation ProcedureType = "mutation"
-)
-
-type Procedure interface {
-	// The name of the procedure
-	Name() string
-
-	// The type of the procedure, one of 'query' or 'mutation'
-	Type() ProcedureType
-
-	// Return an empty type that represents the payload that the procedure expects
-	// WARNING: whatever is returned here is only used for type inference/reflection during runtime; no value should be expected here
-	PayloadInterface() any
-
-	// Check if the procedure expects a payload or not
-	// This is useful for procedures that don't expect a payload, so we can instantly skip the payload decoding step
-	ExpectsPayload() bool
-
-	// Call the procedure with the given context and payload
-	Call(*Context, any) (any, error)
-}
 
 type (
 	Robin struct {

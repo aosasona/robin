@@ -11,6 +11,7 @@ import (
 	"go.trulyao.dev/robin/internal/guarded"
 )
 
+// handleProcedureCall handles a procedure call, calling the procedure and returning the result from the handler
 func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	var (
 		data = struct {
@@ -65,7 +66,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	return nil
 }
 
-// TODO: document
+// handleProcedureCallFromURL handles a procedure call from a URL
 func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, error) {
 	var (
 		procedureName string
@@ -101,7 +102,8 @@ func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, er
 	return procedureType, procedureName, nil
 }
 
-// TODO: document
+// findProcedure finds a procedure by name and type in the Robin instance
+// An instance can have multiple procedures with the same name but different types
 func (r *Robin) findProcedure(name string, procedureType ProcedureType) (*Procedure, bool) {
 	procedure, ok := r.procedures[name]
 	if !ok {

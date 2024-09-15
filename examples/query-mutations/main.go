@@ -66,7 +66,7 @@ func main() {
 		Add(robin.Mutation("deleteUser", deleteUser)).
 		Build()
 
-	r.ExportTSBindings()
+	r.ExportTSBindings("./robin.ts")
 	r.Serve()
 
 	// Alternatively, you can use the default handler with your own mux and server
