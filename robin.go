@@ -120,10 +120,11 @@ func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 // Build the Robin instance
 func (r *Robin) Build() *Instance {
 	return &Instance{
-		robin:        r,
-		bindingsPath: r.bindingsPath,
-		port:         8081,
-		route:        "_robin",
+		enableTypescriptGen: r.enableTypescriptGen,
+		robin:               r,
+		bindingsPath:        r.bindingsPath,
+		port:                8081,
+		route:               "_robin",
 	}
 }
 

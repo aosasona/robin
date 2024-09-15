@@ -9,6 +9,9 @@ import (
 )
 
 type Instance struct {
+	// Enable generation of typescript bindings
+	enableTypescriptGen bool
+
 	// Path to the generated typescript schema
 	bindingsPath string
 
@@ -68,6 +71,9 @@ func (i *Instance) SetRoute(route string) {
 
 // ExportTSBindings exports the typescript bindings to the specified path
 func (i *Instance) ExportTSBindings(optPath ...string) error {
+	if !i.enableTypescriptGen {
+		return nil
+	}
 	path := i.bindingsPath
 
 	if len(optPath) > 0 {

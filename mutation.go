@@ -16,9 +16,13 @@ type (
 		// The function that will be called when the mutation is executed
 		fn MutationFn[ReturnType, BodyType]
 
-		// The type of the body that the mutation expects
+		// A placeholder for the type of the body that the mutation expects
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
-		body BodyType
+		in BodyType
+
+		// A placeholder for the return type of the mutation
+		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
+		out ReturnType
 
 		// Whether the mutation expects a payload or not
 		expectsPayload bool
@@ -35,14 +39,19 @@ func (m *mutation[_, _]) Type() ProcedureType {
 	return ProcedureTypeMutation
 }
 
-// Returns the type of the payload that the mutation expects, this value is empty and only used for type inference/reflection during runtime
+// PayloadInterface returns a placeholder variable with the type of the payload that the mutation expects, this value is empty and only used for type inference/reflection during runtime
 func (m *mutation[_, _]) PayloadInterface() any {
-	return m.body
+	return m.in
+}
+
+// ReturnInterface returns a placeholder variable with the type of the return value of the mutation, this value is empty and only used for type inference/reflection during runtime
+func (m *mutation[_, _]) ReturnInterface() any {
+	return m.out
 }
 
 // Calls the mutation with the given context and body
 func (m *mutation[ReturnType, BodyType]) Call(ctx *Context, rawBody any) (any, error) {
-	body, err := guarded.CastType(rawBody, m.body)
+	body, err := guarded.CastType(rawBody, m.in)
 	if err != nil {
 		return nil, err
 	}

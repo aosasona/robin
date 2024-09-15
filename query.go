@@ -16,9 +16,13 @@ type (
 		// The function that will be called when the query is executed
 		fn QueryFn[ReturnType, ParamsType]
 
-		// The type of the params that the query expects
+		// A placeholder for the type of the body that the query expects
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
-		params ParamsType
+		in ParamsType
+
+		// A placeholder for the return type of the query
+		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
+		out ReturnType
 
 		// Whether the query expects a payload or not
 		expectsPayload bool
@@ -35,14 +39,19 @@ func (q *query[_, _]) Type() ProcedureType {
 	return ProcedureTypeQuery
 }
 
-// PayloadInterface returns the type of the payload that the query expects, this value is empty and only used for type inference/reflection during runtime
-func (q *query[ReturnType, ParamsType]) PayloadInterface() any {
-	return q.params
+// PayloadInterface returns a placeholder variable with the type of the payload that the query expects, this value is empty and only used for type inference/reflection during runtime
+func (q *query[_, _]) PayloadInterface() any {
+	return q.in
+}
+
+// ReturnInterface returns a placeholder variable with the type of the return value of the query, this value is empty and only used for type inference/reflection during runtime
+func (q *query[_, _]) ReturnInterface() any {
+	return q.out
 }
 
 // Calls the query with the given context and params
 func (q *query[ReturnType, ParamsType]) Call(ctx *Context, rawParams any) (any, error) {
-	params, err := guarded.CastType(rawParams, q.params)
+	params, err := guarded.CastType(rawParams, q.in)
 	if err != nil {
 		return nil, err
 	}
