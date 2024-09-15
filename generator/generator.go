@@ -5,15 +5,11 @@ import (
 	"go.trulyao.dev/robin/types"
 )
 
-type Schema struct {
-	Name           string `mirror:"name"`
-	RequestSchema  any    `mirror:"name:request"`
-	ResponseSchema any    `mirror:"name:response"`
-}
+type Schema struct{}
 
 type Exported struct {
-	Queries   []Schema `mirror:"name:queries"`
-	Mutations []Schema `mirror:"name:mutations"`
+	Queries   Schema `mirror:"name:queries"`
+	Mutations Schema `mirror:"name:mutations"`
 }
 
 type generator struct{}
@@ -24,25 +20,22 @@ func New() generator {
 
 func Generate(procedures []types.Procedure) Exported {
 	exported := Exported{
-		Queries:   []Schema{},
-		Mutations: []Schema{},
+		Queries:   Schema{},
+		Mutations: Schema{},
 	}
 
-	for _, procedure := range procedures {
-		var schema Schema
+	// TODO: separate queries and mutations
 
-		schema.Name = procedure.Name()
-		schema.RequestSchema = procedure.PayloadInterface()
-		schema.ResponseSchema = procedure.ReturnInterface()
-
-		switch procedure.Type() {
-		case types.ProcedureTypeQuery:
-			exported.Queries = append(exported.Queries, schema)
-
-		case types.ProcedureTypeMutation:
-			exported.Mutations = append(exported.Mutations, schema)
-		}
-	}
+	// TODO: dynamically create the schema via mirror hooks
+	// Shape =>
+	// type Robin = {
+	//     queries: {
+	//         queryName: {
+	//             output: ...,  // type of the output/result here
+	//             input: ...,  // type of the input here
+	//         }
+	//     }
+	// }
 
 	return exported
 }
