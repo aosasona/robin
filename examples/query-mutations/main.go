@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 
 	"go.trulyao.dev/robin"
 )
@@ -54,10 +55,17 @@ func errorHandler(err error) ([]byte, int) {
 }
 
 func main() {
-	r := robin.New(robin.Options{
+	r, err := robin.New(robin.Options{
 		ErrorHandler:    errorHandler,
 		EnableDebugMode: true,
-	}).
+		BindingsPath:    "./examples/query-mutations/bindings",
+	})
+	if err != nil {
+		slog.Error("Failed to create Robin instance", slog.String("error", err.Error()))
+		return
+	}
+
+	instance := r.
 		Add(robin.Query("ping", ping)).
 		Add(robin.Query("getUser", getUser)).
 		Add(robin.Query("getUsersByIds", getUsersByIds)).
@@ -66,8 +74,8 @@ func main() {
 		Add(robin.Mutation("deleteUser", deleteUser)).
 		Build()
 
-	r.ExportTSBindings("./robin.ts")
-	r.Serve()
+	_ = instance.ExportTSBindings()
+	instance.Serve()
 
 	// Alternatively, you can use the default handler with your own mux and server
 	//

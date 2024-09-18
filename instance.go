@@ -12,7 +12,7 @@ type Instance struct {
 	// Enable generation of typescript bindings
 	enableTypescriptGen bool
 
-	// Path to the generated typescript schema
+	// Path to the generated folder for typescript bindings
 	bindingsPath string
 
 	// Internal pointer to the current robin instance

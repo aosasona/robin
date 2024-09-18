@@ -60,8 +60,8 @@ type (
 )
 
 type Options struct {
-	// Path to the generated typescript schema
-	BindingPath string
+	// Path to the generated folder for typescript bindings
+	BindingsPath string
 
 	// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
 	EnableSchemaGeneration bool
@@ -74,7 +74,9 @@ type Options struct {
 }
 
 // Robin is just going to be an adapter for something like Echo
-func New(opts Options) *Robin {
+func New(opts Options) (*Robin, error) {
+	robin := new(Robin)
+
 	errorHandler := DefaultErrorHandler
 	if opts.ErrorHandler != nil {
 		errorHandler = opts.ErrorHandler
@@ -86,12 +88,31 @@ func New(opts Options) *Robin {
 		enableTSGen = strings.ToLower(v) == "true" || v == "1"
 	}
 
-	return &Robin{
+	// Ensure the bindings path is a valid directory
+	if opts.BindingsPath != "" {
+		fmt.Println(opts.BindingsPath)
+		if _, err := os.Stat(opts.BindingsPath); os.IsNotExist(err) {
+			slog.Warn(
+				"Provided bindings path does not exist, creating it...",
+				slog.String("path", opts.BindingsPath),
+			)
+
+			err := os.MkdirAll(opts.BindingsPath, 0o755)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create bindings path: %v", err)
+			}
+		}
+	}
+
+	robin = &Robin{
+		bindingsPath:        opts.BindingsPath,
 		enableTypescriptGen: enableTSGen,
 		debug:               opts.EnableDebugMode,
 		procedures:          make(map[string]Procedure),
 		errorHandler:        errorHandler,
 	}
+
+	return robin, nil
 }
 
 // Add a new procedure to the Robin instance
