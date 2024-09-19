@@ -1,6 +1,8 @@
 package generator
 
 import (
+	"errors"
+
 	"go.trulyao.dev/mirror/v2"
 	"go.trulyao.dev/mirror/v2/config"
 	"go.trulyao.dev/mirror/v2/parser"
@@ -43,6 +45,22 @@ func (g *generator) onParseItem(sourceName string, target parser.Item) error {
 		if schema.Name() != "Export" {
 			return nil
 		}
+
+		queries, exists := schema.GetField("queries")
+		if !exists {
+			return errors.New("missing queries field in Export struct. This should not happen, please file a bug report")
+		}
+
+		mutations, exists := schema.GetField("mutations")
+		if !exists {
+			return errors.New("missing mutations field in Export struct. This should not happen, please file a bug report")
+		}
+
+		// TODO: REMOVE THESE AFTER USING THEM
+		var (
+			_ = queries
+			_ = mutations
+		)
 
 		for _, procedure := range g.procedures {
 			switch procedure.Type() {
