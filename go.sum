@@ -22,3 +22,7 @@ go.trulyao.dev/mirror/v2 v2.5.0 h1:PHYZq437TQA0meC2nc/PCxv2VGIlxxOnrQuGTbvz1yA=
 go.trulyao.dev/mirror/v2 v2.5.0/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
 go.trulyao.dev/mirror/v2 v2.6.0 h1:5wnbgrDrtBw1OLAJTjOWwveNG40kbXnxn9tgIBJNRV4=
 go.trulyao.dev/mirror/v2 v2.6.0/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
+go.trulyao.dev/mirror/v2 v2.6.1 h1:7QMIHwCdAVfoM/S0iSl1nFaTcVpZTY/Qqa0Qn1v2maM=
+go.trulyao.dev/mirror/v2 v2.6.1/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
+go.trulyao.dev/mirror/v2 v2.7.0 h1:P2JfRKMWob0ZOZuRiIJ3c9YpzBIAELMlpChY/iLRxks=
+go.trulyao.dev/mirror/v2 v2.7.0/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
