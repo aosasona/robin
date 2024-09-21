@@ -56,9 +56,10 @@ func errorHandler(err error) ([]byte, int) {
 
 func main() {
 	r, err := robin.New(robin.Options{
-		ErrorHandler:    errorHandler,
-		EnableDebugMode: true,
-		BindingsPath:    "./examples/query-mutations/bindings",
+		EnableSchemaGeneration: true,
+		ErrorHandler:           errorHandler,
+		EnableDebugMode:        true,
+		BindingsPath:           "./examples/query-mutations/client",
 	})
 	if err != nil {
 		slog.Error("Failed to create Robin instance", slog.String("error", err.Error()))
@@ -74,7 +75,11 @@ func main() {
 		Add(robin.Mutation("deleteUser", deleteUser)).
 		Build()
 
-	_ = instance.ExportTSBindings()
+	if err = instance.ExportTSBindings(); err != nil {
+		slog.Error("Failed to export TypeScript bindings", slog.String("error", err.Error()))
+		return
+	}
+
 	instance.Serve()
 
 	// Alternatively, you can use the default handler with your own mux and server

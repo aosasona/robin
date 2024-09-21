@@ -41,13 +41,16 @@ type JsonSerializable interface {
 }
 
 // No-op type to represent a procedure that doesn't return any response or take any payload
-type Void struct{}
+type (
+	__robin_void struct{} // Used for identification of robin's special void type
+	Void         = __robin_void
+)
 
-func (v Void) MarshalJSON() ([]byte, error) {
+func (v __robin_void) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
-func (v *Void) UnmarshalJSON(data []byte) error {
+func (v *__robin_void) UnmarshalJSON(data []byte) error {
 	if string(data) != "" && string(data) != "null" {
 		return &json.UnsupportedValueError{
 			Value: reflect.ValueOf(data),

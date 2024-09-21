@@ -6,6 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"go.trulyao.dev/robin/generator"
+	"go.trulyao.dev/robin/types"
 )
 
 type Instance struct {
@@ -85,6 +88,19 @@ func (i *Instance) ExportTSBindings(optPath ...string) error {
 			"no bindings export path provided, you can pass this to the `ExportTSBindings` method after calling `Build()` or as part of the opts during the instance creation with `robin.New(...)`",
 		)
 	}
+
+	procedures := make([]types.Procedure, 0, len(i.robin.procedures))
+	for _, p := range i.robin.procedures {
+		procedures = append(procedures, p)
+	}
+
+	g := generator.New(procedures)
+	types, err := g.GenerateSchema()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("==> TYPES\n" + types)
 
 	return nil
 }

@@ -59,6 +59,7 @@ type (
 	}
 )
 
+// TODO: add codegen struct to contain flags for generating just the schema or the schema and the typescript bindings
 type Options struct {
 	// Path to the generated folder for typescript bindings
 	BindingsPath string
@@ -90,7 +91,6 @@ func New(opts Options) (*Robin, error) {
 
 	// Ensure the bindings path is a valid directory
 	if opts.BindingsPath != "" {
-		fmt.Println(opts.BindingsPath)
 		if _, err := os.Stat(opts.BindingsPath); os.IsNotExist(err) {
 			slog.Warn(
 				"Provided bindings path does not exist, creating it...",
