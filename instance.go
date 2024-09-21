@@ -89,6 +89,8 @@ func (i *Instance) ExportTSBindings(optPath ...string) error {
 		)
 	}
 
+	// TODO: check that is is a directory
+
 	procedures := make([]types.Procedure, 0, len(i.robin.procedures))
 	for _, p := range i.robin.procedures {
 		procedures = append(procedures, p)

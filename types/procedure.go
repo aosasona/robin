@@ -43,7 +43,8 @@ type JsonSerializable interface {
 // No-op type to represent a procedure that doesn't return any response or take any payload
 type (
 	__robin_void struct{} // Used for identification of robin's special void type
-	Void         = __robin_void
+
+	Void = __robin_void
 )
 
 func (v __robin_void) MarshalJSON() ([]byte, error) {

@@ -45,7 +45,8 @@ func New(procedures []types.Procedure) *generator {
 // Generates the typescript schema for the given procedures
 func (g *generator) GenerateSchema() (string, error) {
 	g.mirrorInstance.Parser().OnParseItem(g.onParseItem)
-	g.mirrorInstance.Parser().OnParseField(g.onParseField)
+	g.mirrorInstance.Parser().
+		AddCustomType("__robin_void", &parser.Scalar{ItemType: parser.TypeVoid})
 	g.mirrorInstance.AddSources(__robin_export{})
 
 	target := typescript.DefaultConfig().
@@ -53,26 +54,15 @@ func (g *generator) GenerateSchema() (string, error) {
 		SetInlineObjects(true).
 		SetIncludeSemiColon(true).
 		SetPreferNullForNullable(true).
-		SetPreferUnknown(true).
-		SetPreferArrayGeneric(false)
+		SetPreferUnknown(true)
 
 	target.Generator().SetHeaderText("")
 
 	return g.mirrorInstance.GenerateforTarget(target)
 }
 
-func (g *generator) onParseField(
-	_ *reflect.Type,
-	_ *reflect.StructField,
-	field *parser.Field,
-) error {
-	fmt.Printf("%#v\n", field)
-	return nil
-}
-
 func (g *generator) onParseItem(sourceName string, target parser.Item) error {
 	switch item := target.(type) {
-
 	case *parser.Struct:
 		switch item.Name() {
 		case "__robin_export":
@@ -81,11 +71,9 @@ func (g *generator) onParseItem(sourceName string, target parser.Item) error {
 		default:
 			return nil
 		}
-
-	default:
-		// we only care about the struct
-		return nil
 	}
+
+	return nil
 }
 
 func (g *generator) handleClientType(item *parser.Struct) error {
