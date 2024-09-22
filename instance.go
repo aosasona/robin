@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 
 	"go.trulyao.dev/robin/generator"
@@ -89,19 +90,32 @@ func (i *Instance) ExportTSBindings(optPath ...string) error {
 		)
 	}
 
-	// TODO: check that is is a directory
+	// Check that the path provided exists and is a directory
+	stat, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("failed to stat bindings path: %v", err)
+	}
 
+	if !stat.IsDir() {
+		return errors.New("provided path is not a directory")
+	}
+
+	// Collect our procedures as a slice
 	procedures := make([]types.Procedure, 0, len(i.robin.procedures))
 	for _, p := range i.robin.procedures {
 		procedures = append(procedures, p)
 	}
 
+	// Generate the types
 	g := generator.New(procedures)
 	types, err := g.GenerateSchema()
 	if err != nil {
 		return err
 	}
 
+	// TODO: write to file
+
+	// TODO: REMOVE
 	fmt.Println("==> TYPES\n" + types)
 
 	return nil
