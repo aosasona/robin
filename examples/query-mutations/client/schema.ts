@@ -13,16 +13,16 @@ export type Schema = {
         };
         getUsersByIds: {
             result: Array<{
-    id?: number;
-    name: string;
-}>;
+                id?: number;
+                name: string;
+            }>;
             payload: Array<number>;
         };
         getUsers: {
             result: Array<{
-    id?: number;
-    name: string;
-}>;
+                id?: number;
+                name: string;
+            }>;
             payload: void;
         };
     };
