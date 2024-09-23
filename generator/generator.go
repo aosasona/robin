@@ -77,7 +77,7 @@ func (g *generator) onParseItem(sourceName string, target parser.Item) error {
 }
 
 func (g *generator) handleClientType(item *parser.Struct) error {
-	item.ItemName = "Client"
+	item.ItemName = "Schema"
 
 	queries, mutations, err := g.getProcedureFields(item)
 	if err != nil {
@@ -85,11 +85,10 @@ func (g *generator) handleClientType(item *parser.Struct) error {
 	}
 
 	for _, procedure := range g.procedures {
+		var returnItem, payloadItem parser.Item
 
 		// Parse the output and input items
-		returnItem, err := g.mirrorInstance.Parser().
-			Parse(reflect.TypeOf(procedure.ReturnInterface()))
-		if err != nil {
+		if returnItem, err = g.mirrorInstance.Parser().Parse(reflect.TypeOf(procedure.ReturnInterface())); err != nil {
 			return fmt.Errorf(
 				"failed to parse output item for procedure %s: %w",
 				procedure.Name(),
@@ -97,9 +96,7 @@ func (g *generator) handleClientType(item *parser.Struct) error {
 			)
 		}
 
-		payloadItem, err := g.mirrorInstance.Parser().
-			Parse(reflect.TypeOf(procedure.PayloadInterface()))
-		if err != nil {
+		if payloadItem, err = g.mirrorInstance.Parser().Parse(reflect.TypeOf(procedure.PayloadInterface())); err != nil {
 			return fmt.Errorf(
 				"failed to parse input item for procedure %s: %w",
 				procedure.Name(),
@@ -112,10 +109,11 @@ func (g *generator) handleClientType(item *parser.Struct) error {
 			BaseItem: &parser.Struct{
 				ItemName: procedure.Name(),
 				Fields: []parser.Field{
-					// Output
-					{ItemName: "output", BaseItem: returnItem},
-					// Input
-					{ItemName: "input", BaseItem: payloadItem},
+					// Result
+					{ItemName: "result", BaseItem: returnItem},
+
+					// Payload
+					{ItemName: "payload", BaseItem: payloadItem},
 				},
 			},
 			Meta: meta.Meta{},

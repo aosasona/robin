@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"go.trulyao.dev/robin/generator"
-	"go.trulyao.dev/robin/types"
 )
 
 type Instance struct {
@@ -84,6 +83,43 @@ func (i *Instance) ExportTSBindings(optPath ...string) error {
 		path = optPath[0]
 	}
 
+	if err := i.validatePath(path); err != nil {
+		return err
+	}
+
+	// Generate the types
+	g := generator.New(i.robin.procedures.List())
+	schemaString, err := g.GenerateSchema()
+	if err != nil {
+		return err
+	}
+
+	// Write the schema to a file
+	if err := i.writeSchemaToFile(path, strings.TrimSpace(schemaString)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (i *Instance) writeSchemaToFile(path, schema string) error {
+	filePath := fmt.Sprintf("%s/schema.ts", path)
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create schema file: %s", err.Error())
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(schema); err != nil {
+		return fmt.Errorf("failed to write schema to file: %s", err.Error())
+	}
+
+	slog.Info("📦 Typescript bindings exported successfully", slog.String("path", filePath))
+	return nil
+}
+
+func (i *Instance) validatePath(path string) error {
 	if strings.TrimSpace(path) == "" {
 		return errors.New(
 			"no bindings export path provided, you can pass this to the `ExportTSBindings` method after calling `Build()` or as part of the opts during the instance creation with `robin.New(...)`",
@@ -99,24 +135,6 @@ func (i *Instance) ExportTSBindings(optPath ...string) error {
 	if !stat.IsDir() {
 		return errors.New("provided path is not a directory")
 	}
-
-	// Collect our procedures as a slice
-	procedures := make([]types.Procedure, 0, len(i.robin.procedures))
-	for _, p := range i.robin.procedures {
-		procedures = append(procedures, p)
-	}
-
-	// Generate the types
-	g := generator.New(procedures)
-	types, err := g.GenerateSchema()
-	if err != nil {
-		return err
-	}
-
-	// TODO: write to file
-
-	// TODO: REMOVE
-	fmt.Println("==> TYPES\n" + types)
 
 	return nil
 }
