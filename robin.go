@@ -52,7 +52,7 @@ type (
 		debug bool
 
 		// A list of query and mutation procedures
-		procedures map[string]Procedure
+		procedures Procedures
 
 		// A function that will be called when an error occurs, if not provided, the default error handler will be used
 		errorHandler ErrorHandler
@@ -108,7 +108,7 @@ func New(opts Options) (*Robin, error) {
 		bindingsPath:        opts.BindingsPath,
 		enableTypescriptGen: enableTSGen,
 		debug:               opts.EnableDebugMode,
-		procedures:          make(map[string]Procedure),
+		procedures:          Procedures{},
 		errorHandler:        errorHandler,
 	}
 
@@ -118,7 +118,7 @@ func New(opts Options) (*Robin, error) {
 // Add a new procedure to the Robin instance
 // If a procedure with the same name already exists, it will be skipped and a warning will be logged in debug mode
 func (r *Robin) Add(procedure Procedure) *Robin {
-	if _, ok := r.procedures[procedure.Name()]; ok {
+	if r.procedures.Exists(procedure.Name()) {
 		if r.debug {
 			slog.Warn(
 				"Attempted to add a duplicate procedure, skipping...",
@@ -129,7 +129,7 @@ func (r *Robin) Add(procedure Procedure) *Robin {
 		return r
 	}
 
-	r.procedures[procedure.Name()] = procedure
+	r.procedures.Add(procedure)
 	return r
 }
 
