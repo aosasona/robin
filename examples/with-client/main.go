@@ -32,7 +32,7 @@ func main() {
 		Add(robin.Mutation("create", h.Create)).
 		Build()
 
-	if err := i.ExportClient(); err != nil {
+	if err := i.Export(); err != nil {
 		slog.Error("Failed to export client", slog.String("error", err.Error()))
 		return
 	}

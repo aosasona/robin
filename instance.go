@@ -18,9 +18,6 @@ type Instance struct {
 	// Internal pointer to the current robin instance
 	robin *Robin
 
-	// Path to the generated folder for typescript bindings
-	bindingsPath string
-
 	// Port to run the server on
 	port int
 
@@ -72,8 +69,8 @@ func (i *Instance) SetRoute(route string) {
 	i.route = route
 }
 
-// ExportTSBindings exports the typescript bindings to the specified path
-func (i *Instance) ExportTSBindings(optPath ...string) error {
+// Export exports the typescript schema (and bindings; if enabled) to the specified path
+func (i *Instance) Export(optPath ...string) error {
 	if !i.codegenOptions.GenerateSchema && !i.codegenOptions.GenerateBindings {
 		return nil
 	}
@@ -84,7 +81,7 @@ func (i *Instance) ExportTSBindings(optPath ...string) error {
 	}
 
 	// Figure out what path to use depending on user configurations
-	path := i.bindingsPath
+	path := i.codegenOptions.Path
 	if len(optPath) > 0 {
 		path = optPath[0]
 	}
@@ -124,14 +121,14 @@ func (i *Instance) writeSchemaToFile(path, schema string) error {
 		return fmt.Errorf("failed to write schema to file: %s", err.Error())
 	}
 
-	slog.Info("📦 Typescript bindings exported successfully", slog.String("path", filePath))
+	slog.Info("📦 Typescript schema exported successfully", slog.String("path", filePath))
 	return nil
 }
 
 func (i *Instance) validatePath(path string) error {
 	if strings.TrimSpace(path) == "" {
 		return errors.New(
-			"no bindings export path provided, you can pass this to the `ExportTSBindings` method after calling `Build()` or as part of the opts during the instance creation with `robin.New(...)`",
+			"no bindings export path provided, you can pass this to the `Export` method after calling `Build()` or as part of the opts during the instance creation with `robin.New(...)`",
 		)
 	}
 

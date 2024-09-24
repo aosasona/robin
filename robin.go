@@ -43,10 +43,33 @@ const (
 var procedureNameRegex = regexp.MustCompile(`(?m)[^a-zA-Z0-9]`)
 
 type (
-	Robin struct {
-		// Path to the generated typescript schema
-		bindingsPath string
+	CodegenOptions struct {
+		// Path to the generated folder for typescript bindings and schema
+		Path string
 
+		// Whether to generate the typescript bindings or not.
+		//
+		// NOTE: You can simply generate the schema without the bindings by enabling `GenerateSchema` and disabling this
+		//
+		// WARNING: If this is enabled, `GenerateSchema` will be ignored and schema generation will be enabled automatically
+		GenerateBindings bool
+
+		// Whether to generate the typescript schema or not
+		GenerateSchema bool
+	}
+
+	Options struct {
+		// Options for controlling code generation
+		CodegenOptions CodegenOptions
+
+		// Enable debug mode to log useful info
+		EnableDebugMode bool
+
+		// A function that will be called when an error occurs, it should ideally return a marshallable struct
+		ErrorHandler ErrorHandler
+	}
+
+	Robin struct {
 		// Controls Typescript code generation
 		codegenOptions CodegenOptions
 
@@ -59,32 +82,7 @@ type (
 		// A function that will be called when an error occurs, if not provided, the default error handler will be used
 		errorHandler ErrorHandler
 	}
-
-	CodegenOptions struct {
-		// Whether to generate the typescript bindings or not
-		// NOTE: You can simply generate the schema without the bindings by enabling `GenerateSchema` and disabling this
-		// WARNING: If this is enabled, `GenerateSchema` will be ignored and schema generation will be enabled automatically
-		GenerateBindings bool
-
-		// Whether to generate the typescript schema or not
-		GenerateSchema bool
-	}
 )
-
-// TODO: add codegen struct to contain flags for generating just the schema or the schema and the typescript bindings
-type Options struct {
-	// Path to the generated folder for typescript bindings
-	BindingsPath string
-
-	// Options for controlling code generation
-	CodegenOptions CodegenOptions
-
-	// Enable debug mode to log useful info
-	EnableDebugMode bool
-
-	// A function that will be called when an error occurs, it should ideally return a marshallable struct
-	ErrorHandler ErrorHandler
-}
 
 // Robin is just going to be an adapter for something like Echo
 func New(opts Options) (*Robin, error) {
@@ -95,42 +93,16 @@ func New(opts Options) (*Robin, error) {
 		errorHandler = opts.ErrorHandler
 	}
 
-	enableSchemaGen := opts.CodegenOptions.GenerateSchema
-	// The environment variable takes precedence over whatver is set in code
-	if v, ok := os.LookupEnv(EnvEnableSchemaGen); ok {
-		enableSchemaGen = strings.ToLower(v) == "true" || v == "1"
-	}
-
-	enableBindingsGen := opts.CodegenOptions.GenerateBindings
-	if v, ok := os.LookupEnv(EnvEnableBindingsGen); ok {
-		enableBindingsGen = strings.ToLower(v) == "true" || v == "1"
-	}
-
-	// Ensure the bindings path is a valid directory
-	if opts.BindingsPath != "" &&
-		(opts.CodegenOptions.GenerateBindings || opts.CodegenOptions.GenerateSchema) {
-		if _, err := os.Stat(opts.BindingsPath); os.IsNotExist(err) {
-			slog.Warn(
-				"Provided bindings path does not exist, creating it...",
-				slog.String("path", opts.BindingsPath),
-			)
-
-			err := os.MkdirAll(opts.BindingsPath, 0o755)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create bindings path: %v", err)
-			}
-		}
+	codegenOptions, err := robin.extractCodegenOptions(&opts)
+	if err != nil {
+		return nil, err
 	}
 
 	robin = &Robin{
-		bindingsPath: opts.BindingsPath,
-		codegenOptions: CodegenOptions{
-			GenerateBindings: enableBindingsGen,
-			GenerateSchema:   enableSchemaGen,
-		},
-		debug:        opts.EnableDebugMode,
-		procedures:   Procedures{},
-		errorHandler: errorHandler,
+		codegenOptions: codegenOptions,
+		debug:          opts.EnableDebugMode,
+		procedures:     Procedures{},
+		errorHandler:   errorHandler,
 	}
 
 	return robin, nil
@@ -164,7 +136,6 @@ func (r *Robin) Build() *Instance {
 	return &Instance{
 		codegenOptions: &r.codegenOptions,
 		robin:          r,
-		bindingsPath:   r.bindingsPath,
 		port:           8081,
 		route:          "_robin",
 	}
@@ -277,4 +248,40 @@ func (r *Robin) sendError(w http.ResponseWriter, err error) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write([]byte(jsonResp))
+}
+
+// extractCodegenOptions extracts the codegen options from the provided options and environment variables
+func (r *Robin) extractCodegenOptions(opts *Options) (CodegenOptions, error) {
+	enableSchemaGen := opts.CodegenOptions.GenerateSchema
+	// The environment variable takes precedence over whatver is set in code
+	if v, ok := os.LookupEnv(EnvEnableSchemaGen); ok {
+		enableSchemaGen = strings.ToLower(v) == "true" || v == "1"
+	}
+
+	enableBindingsGen := opts.CodegenOptions.GenerateBindings
+	if v, ok := os.LookupEnv(EnvEnableBindingsGen); ok {
+		enableBindingsGen = strings.ToLower(v) == "true" || v == "1"
+	}
+
+	// Ensure the bindings path is a valid directory
+	if opts.CodegenOptions.Path != "" &&
+		(opts.CodegenOptions.GenerateBindings || opts.CodegenOptions.GenerateSchema) {
+		if _, err := os.Stat(opts.CodegenOptions.Path); os.IsNotExist(err) {
+			slog.Warn(
+				"Provided bindings path does not exist, creating it...",
+				slog.String("path", opts.CodegenOptions.Path),
+			)
+
+			err := os.MkdirAll(opts.CodegenOptions.Path, 0o755)
+			if err != nil {
+				return CodegenOptions{}, fmt.Errorf("failed to create bindings path: %v", err)
+			}
+		}
+	}
+
+	return CodegenOptions{
+		Path:             opts.CodegenOptions.Path,
+		GenerateBindings: enableBindingsGen,
+		GenerateSchema:   enableSchemaGen,
+	}, nil
 }
