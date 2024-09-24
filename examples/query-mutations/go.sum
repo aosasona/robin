@@ -6,5 +6,5 @@ github.com/dgryski/trifles v0.0.0-20200323201526-dd97f9abfb48 h1:fRzb/w+pyskVMQ+
 github.com/dgryski/trifles v0.0.0-20200323201526-dd97f9abfb48/go.mod h1:if7Fbed8SFyPtHLHbg49SI7NAdJiC5WIA09pe59rfAA=
 github.com/go-viper/mapstructure/v2 v2.2.0 h1:zGE1Kaz78LVwzU0kOfZuqwKKiG1gLkHTZ/cZioHp9po=
 github.com/go-viper/mapstructure/v2 v2.2.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
-go.trulyao.dev/mirror/v2 v2.4.0 h1:PmPDmYgiPIU0wSg7bOMsxm/V69a8h5g/JEJqQeUHFaA=
-go.trulyao.dev/mirror/v2 v2.4.0/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
+go.trulyao.dev/mirror/v2 v2.7.1 h1:0fS1FvvKC87IT58t/i4E+mpVeNslu3+AZXHIZ+382AY=
+go.trulyao.dev/mirror/v2 v2.7.1/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=

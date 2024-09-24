@@ -56,10 +56,9 @@ func errorHandler(err error) ([]byte, int) {
 
 func main() {
 	r, err := robin.New(robin.Options{
-		EnableSchemaGeneration: true,
-		ErrorHandler:           errorHandler,
-		EnableDebugMode:        true,
-		BindingsPath:           "./examples/query-mutations/client",
+		ErrorHandler:    errorHandler,
+		EnableDebugMode: true,
+		BindingsPath:    "./examples/query-mutations/client",
 	})
 	if err != nil {
 		slog.Error("Failed to create Robin instance", slog.String("error", err.Error()))
@@ -74,11 +73,6 @@ func main() {
 		Add(robin.Mutation("addUser", addUser)).
 		Add(robin.Mutation("deleteUser", deleteUser)).
 		Build()
-
-	if err = instance.ExportTSBindings(); err != nil {
-		slog.Error("Failed to export TypeScript bindings", slog.String("error", err.Error()))
-		return
-	}
 
 	instance.Serve()
 
