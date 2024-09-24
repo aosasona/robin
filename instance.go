@@ -12,14 +12,14 @@ import (
 )
 
 type Instance struct {
-	// Enable generation of typescript bindings
-	enableTypescriptGen bool
-
-	// Path to the generated folder for typescript bindings
-	bindingsPath string
+	// Knobs for typescript code generation
+	codegenOptions *CodegenOptions
 
 	// Internal pointer to the current robin instance
 	robin *Robin
+
+	// Path to the generated folder for typescript bindings
+	bindingsPath string
 
 	// Port to run the server on
 	port int
@@ -74,15 +74,22 @@ func (i *Instance) SetRoute(route string) {
 
 // ExportTSBindings exports the typescript bindings to the specified path
 func (i *Instance) ExportTSBindings(optPath ...string) error {
-	if !i.enableTypescriptGen {
+	if !i.codegenOptions.GenerateSchema && !i.codegenOptions.GenerateBindings {
 		return nil
 	}
-	path := i.bindingsPath
 
+	// Automatically enable schema generation if bindings are enabled
+	if !i.codegenOptions.GenerateSchema && i.codegenOptions.GenerateBindings {
+		i.codegenOptions.GenerateSchema = true
+	}
+
+	// Figure out what path to use depending on user configurations
+	path := i.bindingsPath
 	if len(optPath) > 0 {
 		path = optPath[0]
 	}
 
+	// Ensure the path meets all out requirements
 	if err := i.validatePath(path); err != nil {
 		return err
 	}
@@ -98,6 +105,8 @@ func (i *Instance) ExportTSBindings(optPath ...string) error {
 	if err := i.writeSchemaToFile(path, strings.TrimSpace(schemaString)); err != nil {
 		return err
 	}
+
+	// TODO: check if bindings generation is enabled and generate the bindings
 
 	return nil
 }

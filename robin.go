@@ -35,7 +35,9 @@ const (
 	ProcSeparator = "__"
 	ProcNameKey   = ProcSeparator + "proc"
 
-	EnvRobinEnableTSGen = "ROBIN_ENABLE_SCHEMA_GEN"
+	// Environment variables to control code generation outside of the code
+	EnvEnableSchemaGen   = "ROBIN_ENABLE_SCHEMA_GEN"
+	EnvEnableBindingsGen = "ROBIN_ENABLE_BINDINGS_GEN"
 )
 
 var procedureNameRegex = regexp.MustCompile(`(?m)[^a-zA-Z0-9]`)
@@ -45,8 +47,8 @@ type (
 		// Path to the generated typescript schema
 		bindingsPath string
 
-		// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
-		enableTypescriptGen bool
+		// Controls Typescript code generation
+		codegenOptions CodegenOptions
 
 		// Enable debug mode to log useful info
 		debug bool
@@ -57,6 +59,16 @@ type (
 		// A function that will be called when an error occurs, if not provided, the default error handler will be used
 		errorHandler ErrorHandler
 	}
+
+	CodegenOptions struct {
+		// Whether to generate the typescript bindings or not
+		// NOTE: You can simply generate the schema without the bindings by enabling `GenerateSchema` and disabling this
+		// WARNING: If this is enabled, `GenerateSchema` will be ignored and schema generation will be enabled automatically
+		GenerateBindings bool
+
+		// Whether to generate the typescript schema or not
+		GenerateSchema bool
+	}
 )
 
 // TODO: add codegen struct to contain flags for generating just the schema or the schema and the typescript bindings
@@ -64,8 +76,8 @@ type Options struct {
 	// Path to the generated folder for typescript bindings
 	BindingsPath string
 
-	// Enable the generation of typescript schema during runtime, this is disabled by default to prevent unnecessary overhead when not needed
-	EnableSchemaGeneration bool
+	// Options for controlling code generation
+	CodegenOptions CodegenOptions
 
 	// Enable debug mode to log useful info
 	EnableDebugMode bool
@@ -83,14 +95,20 @@ func New(opts Options) (*Robin, error) {
 		errorHandler = opts.ErrorHandler
 	}
 
-	enableTSGen := opts.EnableSchemaGeneration
+	enableSchemaGen := opts.CodegenOptions.GenerateSchema
 	// The environment variable takes precedence over whatver is set in code
-	if v, isSet := os.LookupEnv(EnvRobinEnableTSGen); isSet {
-		enableTSGen = strings.ToLower(v) == "true" || v == "1"
+	if v, ok := os.LookupEnv(EnvEnableSchemaGen); ok {
+		enableSchemaGen = strings.ToLower(v) == "true" || v == "1"
+	}
+
+	enableBindingsGen := opts.CodegenOptions.GenerateBindings
+	if v, ok := os.LookupEnv(EnvEnableBindingsGen); ok {
+		enableBindingsGen = strings.ToLower(v) == "true" || v == "1"
 	}
 
 	// Ensure the bindings path is a valid directory
-	if opts.BindingsPath != "" {
+	if opts.BindingsPath != "" &&
+		(opts.CodegenOptions.GenerateBindings || opts.CodegenOptions.GenerateSchema) {
 		if _, err := os.Stat(opts.BindingsPath); os.IsNotExist(err) {
 			slog.Warn(
 				"Provided bindings path does not exist, creating it...",
@@ -105,11 +123,14 @@ func New(opts Options) (*Robin, error) {
 	}
 
 	robin = &Robin{
-		bindingsPath:        opts.BindingsPath,
-		enableTypescriptGen: enableTSGen,
-		debug:               opts.EnableDebugMode,
-		procedures:          Procedures{},
-		errorHandler:        errorHandler,
+		bindingsPath: opts.BindingsPath,
+		codegenOptions: CodegenOptions{
+			GenerateBindings: enableBindingsGen,
+			GenerateSchema:   enableSchemaGen,
+		},
+		debug:        opts.EnableDebugMode,
+		procedures:   Procedures{},
+		errorHandler: errorHandler,
 	}
 
 	return robin, nil
@@ -141,11 +162,11 @@ func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 // Build the Robin instance
 func (r *Robin) Build() *Instance {
 	return &Instance{
-		enableTypescriptGen: r.enableTypescriptGen,
-		robin:               r,
-		bindingsPath:        r.bindingsPath,
-		port:                8081,
-		route:               "_robin",
+		codegenOptions: &r.codegenOptions,
+		robin:          r,
+		bindingsPath:   r.bindingsPath,
+		port:           8081,
+		route:          "_robin",
 	}
 }
 
