@@ -68,10 +68,28 @@ func (m *mutation[_, _]) ExpectsPayload() bool {
 	return m.expectsPayload
 }
 
+// Validate validates the query
+func (m *mutation[_, _]) Validate() error {
+	// Check if the query name is valid
+	if m.name == "" {
+		return RobinError{Reason: "Query name cannot be empty"}
+	}
+
+	if !procedureNameRegex.MatchString(m.name) {
+		return RobinError{
+			Reason: fmt.Sprintf(
+				"Invalid procedure name: `%s`, expected string matching regex `%s` (example: `get_user`, `todo.create`)",
+				m.name,
+				procedureNameRegex,
+			),
+		}
+	}
+
+	return nil
+}
+
 // Creates a new mutation with the given name and handler function
 func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
-	name = string(procedureNameRegex.ReplaceAll([]byte(name), []byte("")))
-
 	var body B
 	expectsPayload := guarded.ExpectsPayload(body)
 

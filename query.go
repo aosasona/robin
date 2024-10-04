@@ -68,10 +68,28 @@ func (q *query[_, _]) ExpectsPayload() bool {
 	return q.expectsPayload
 }
 
+// Validate validates the query
+func (q *query[_, _]) Validate() error {
+	// Check if the query name is valid
+	if q.name == "" {
+		return RobinError{Reason: "Query name cannot be empty"}
+	}
+
+	if !procedureNameRegex.MatchString(q.name) {
+		return RobinError{
+			Reason: fmt.Sprintf(
+				"Invalid procedure name: `%s`, expected string matching regex `%s` (example: `get_user`, `todo.create`)",
+				q.name,
+				procedureNameRegex,
+			),
+		}
+	}
+
+	return nil
+}
+
 // Creates a new query with the given name and handler function
 func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
-	name = string(procedureNameRegex.ReplaceAll([]byte(name), []byte("")))
-
 	var body B
 	expectsPayload := guarded.ExpectsPayload(body)
 

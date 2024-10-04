@@ -33,25 +33,28 @@ type Procedure interface {
 
 	// Call the procedure with the given context and payload
 	Call(*Context, any) (any, error)
+
+	// Validate the procedure
+	Validate() error
 }
 
-type JsonSerializable interface {
+type JSONSerializable interface {
 	json.Marshaler
 	json.Unmarshaler
 }
 
 // No-op type to represent a procedure that doesn't return any response or take any payload
 type (
-	__robin_void struct{} // Used for identification of robin's special void type
+	_RobinVoid struct{} // Used for identification of robin's special void type
 
-	Void = __robin_void
+	Void = _RobinVoid
 )
 
-func (v __robin_void) MarshalJSON() ([]byte, error) {
+func (v _RobinVoid) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
-func (v *__robin_void) UnmarshalJSON(data []byte) error {
+func (v *_RobinVoid) UnmarshalJSON(data []byte) error {
 	if string(data) != "" && string(data) != "null" {
 		return &json.UnsupportedValueError{
 			Value: reflect.ValueOf(data),
@@ -61,4 +64,4 @@ func (v *__robin_void) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-var _ JsonSerializable = (*Void)(nil)
+var _ JSONSerializable = (*Void)(nil)

@@ -40,7 +40,7 @@ const (
 	EnvEnableBindingsGen = "ROBIN_ENABLE_BINDINGS_GEN"
 )
 
-var procedureNameRegex = regexp.MustCompile(`(?m)[^a-zA-Z0-9]`)
+var procedureNameRegex = regexp.MustCompile(`(?m)^([a-zA-Z0-9]+)([_\.\-]?[a-zA-Z0-9]+)+$`)
 
 type (
 	CodegenOptions struct {
@@ -132,13 +132,20 @@ func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 }
 
 // Build the Robin instance
-func (r *Robin) Build() *Instance {
+func (r *Robin) Build() (*Instance, error) {
+	// Validate all procedures
+	for _, procedure := range r.procedures.List() {
+		if err := procedure.Validate(); err != nil {
+			return nil, err
+		}
+	}
+
 	return &Instance{
 		codegenOptions: &r.codegenOptions,
 		robin:          r,
 		port:           8081,
 		route:          "_robin",
-	}
+	}, nil
 }
 
 // serveHTTP is the main handler for all incoming HTTP requests
@@ -241,13 +248,13 @@ func (r *Robin) sendError(w http.ResponseWriter, err error) {
 	if err != nil {
 		slog.Error("Failed to marshal error response", slog.String("error", err.Error()))
 		w.WriteHeader(500)
-		w.Write([]byte("Internal server error"))
+		_, _ = w.Write([]byte("Internal server error"))
 		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write([]byte(jsonResp))
+	_, _ = w.Write([]byte(jsonResp))
 }
 
 // extractCodegenOptions extracts the codegen options from the provided options and environment variables
