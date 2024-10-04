@@ -1,5 +1,7 @@
 package robin
 
+import "go.trulyao.dev/robin/types"
+
 type Procedures map[string]Procedure
 
 // Get returns a procedure by name
@@ -7,9 +9,9 @@ func (p Procedures) Get(name string) Procedure {
 	return p[name]
 }
 
-func (p Procedures) Exists(name string) bool {
-	_, exists := p[name]
-	return exists
+func (p Procedures) Exists(name string, procedureType types.ProcedureType) bool {
+	proc, exists := p[name]
+	return exists && proc.Type() == procedureType
 }
 
 // Add adds a procedure to the procedures map

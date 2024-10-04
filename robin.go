@@ -111,7 +111,7 @@ func New(opts Options) (*Robin, error) {
 // Add a new procedure to the Robin instance
 // If a procedure with the same name already exists, it will be skipped and a warning will be logged in debug mode
 func (r *Robin) Add(procedure Procedure) *Robin {
-	if r.procedures.Exists(procedure.Name()) {
+	if r.procedures.Exists(procedure.Name(), procedure.Type()) {
 		if r.debug {
 			slog.Warn(
 				"Attempted to add a duplicate procedure, skipping...",
