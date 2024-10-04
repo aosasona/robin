@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 
 	"go.trulyao.dev/robin"
 )
@@ -15,8 +16,8 @@ func New(db *sql.DB) *handler {
 	return &handler{db}
 }
 
-func (h *handler) Ping(ctx *robin.Context, _ robin.Void) (string, error) {
-	return "pong", nil
+func (h *handler) Ping(ctx *robin.Context, data string) (string, error) {
+	return fmt.Sprintf("Pong: %s", data), nil
 }
 
 // TODO: fix the stubs

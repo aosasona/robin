@@ -31,7 +31,7 @@ func main() {
 	i, err := r.
 		Add(robin.Query("ping", h.Ping)).
 		Add(robin.Query("todos.list", h.List)).
-		Add(robin.Mutation("todo.create", h.Create)).
+		Add(robin.Mutation("todos.create", h.Create)).
 		Build()
 	if err != nil {
 		slog.Error("Failed to build Robin instance", slog.String("error", err.Error()))
