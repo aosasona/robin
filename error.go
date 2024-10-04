@@ -1,19 +1,27 @@
 package robin
 
 import (
+	"encoding/json"
 	"log/slog"
 
 	"go.trulyao.dev/robin/types"
 )
 
 type (
-	ErrorHandler func(error) ([]byte, int)
+	// A type that can be marshalled to JSON or simply a string
+	Serializable interface {
+		json.Marshaler
+	}
+
+	ErrorHandler func(error) (Serializable, int)
+
+	ErrorString string
 )
 
-func DefaultErrorHandler(err error) ([]byte, int) {
+func DefaultErrorHandler(err error) (Serializable, int) {
 	var (
 		code    = 500
-		message = err.Error()
+		message string
 	)
 
 	switch e := err.(type) {
@@ -31,5 +39,9 @@ func DefaultErrorHandler(err error) ([]byte, int) {
 		message = e.Error()
 	}
 
-	return []byte(message), code
+	return ErrorString(message), code
+}
+
+func (e ErrorString) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(e))
 }

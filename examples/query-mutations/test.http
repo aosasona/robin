@@ -56,3 +56,10 @@ Accept: application/json
 {
   "d": 2
 }
+
+###
+
+# Error mutation
+POST {{url}}?__proc=m__error
+Content-Type: application/json
+Accept: application/json

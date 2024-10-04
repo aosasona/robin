@@ -18,9 +18,10 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 			Payload any `json:"d"`
 		}{Payload: procedure.PayloadInterface()}
 
-		response = make(map[string]interface{})
+		response = make(map[string]any)
 	)
 
+	response["ok"] = true
 	response["data"] = Void{}
 
 	// Decode the request body into the "typeless" payload field of the data struct
@@ -61,7 +62,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 
 	ctx.Response.Header().Add("content-type", "application/json")
 	ctx.Response.WriteHeader(200)
-	ctx.Response.Write(strResponse)
+	_, _ = ctx.Response.Write(strResponse)
 
 	return nil
 }

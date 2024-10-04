@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 
@@ -39,7 +40,22 @@ var users = []User{
 	{ID: 5, Name: "Charlie"},
 }
 
-func errorHandler(err error) ([]byte, int) {
+type SerializableCustomError struct {
+	Message string
+	Code    int
+}
+
+func (s *SerializableCustomError) MarshalJSON() ([]byte, error) {
+	// return []byte(fmt.Sprintf(`{"message":"%s","code":%d}`, s.Message, s.Code)), nil
+	// OR
+	// Remember that doing `json.Marshal(s)` will cause an infinite recursion
+	return json.Marshal(map[string]interface{}{
+		"message": s.Message,
+		"code":    s.Code,
+	})
+}
+
+func errorHandler(err error) (robin.Serializable, int) {
 	message := err.Error()
 	code := 500
 
@@ -51,7 +67,7 @@ func errorHandler(err error) ([]byte, int) {
 		message = "robin error: " + e.Message
 	}
 
-	return []byte("[via custom handler] " + message), code
+	return &SerializableCustomError{Message: message, Code: code}, code
 }
 
 func main() {
@@ -69,8 +85,10 @@ func main() {
 		Add(robin.Query("getUser", getUser)).
 		Add(robin.Query("getUsersByIds", getUsersByIds)).
 		Add(robin.Query("getUsers", getUsers)).
+		Add(robin.Query("error", errorEndpoint)).
 		Add(robin.Mutation("addUser", addUser)).
 		Add(robin.Mutation("deleteUser", deleteUser)).
+		Add(robin.Mutation("error", errorEndpoint)).
 		Build()
 	if err != nil {
 		slog.Error("Failed to build Robin instance", slog.String("error", err.Error()))
@@ -157,4 +175,8 @@ func deleteUser(_ *robin.Context, id int) (User, error) {
 	}
 
 	return User{}, Error{Message: fmt.Sprintf("User %d not found", id), Code: 400}
+}
+
+func errorEndpoint(_ *robin.Context, _ robin.Void) (robin.Void, error) {
+	return robin.Void{}, NewError("This is an error", 400)
 }

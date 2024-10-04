@@ -12,6 +12,11 @@ const (
 	ProcedureTypeMutation ProcedureType = "mutation"
 )
 
+type JSONSerializable interface {
+	json.Marshaler
+	json.Unmarshaler
+}
+
 type Procedure interface {
 	// The name of the procedure
 	Name() string
@@ -36,11 +41,6 @@ type Procedure interface {
 
 	// Validate the procedure
 	Validate() error
-}
-
-type JSONSerializable interface {
-	json.Marshaler
-	json.Unmarshaler
 }
 
 // No-op type to represent a procedure that doesn't return any response or take any payload

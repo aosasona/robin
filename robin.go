@@ -235,15 +235,14 @@ func (r *Robin) makeMissingProcedureError(procedureName string, procedureType Pr
 	return types.RobinError{Reason: errString}
 }
 
-// TODO: split this into another function that handles errors from the robin handlers
+// Utility function to send an error response
 func (r *Robin) sendError(w http.ResponseWriter, err error) {
 	if r.debug {
 		slog.Error("An error occurred in handler", slog.Any("error", err))
 	}
 
-	// TODO: the error handler should be able to return anything it wants and then we decide if we want to put it in a `data` field in the map struct or not
-	errorResp, code := r.errorHandler(err)
-	errMap := map[string]string{"error": string(errorResp)}
+	errorResponse, code := r.errorHandler(err)
+	errMap := map[string]any{"error": errorResponse, "ok": false}
 	jsonResp, err := json.Marshal(errMap)
 	if err != nil {
 		slog.Error("Failed to marshal error response", slog.String("error", err.Error()))
