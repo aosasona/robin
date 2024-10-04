@@ -1,14 +1,18 @@
 export type Schema = {
-    queries: {
-        list: {
-            result: Array<string>;
-            payload: void;
-        };
-    };
-    mutations: {
-        create: {
-            result: string;
-            payload: void;
-        };
-    };
+	queries: {
+		ping: {
+			result: string;
+			payload: void;
+		};
+		"todos.list": {
+			result: Array<string>;
+			payload: void;
+		};
+	};
+	mutations: {
+		"todo.create": {
+			result: string;
+			payload: void;
+		};
+	};
 };

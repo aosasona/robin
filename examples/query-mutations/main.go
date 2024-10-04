@@ -58,14 +58,13 @@ func main() {
 	r, err := robin.New(robin.Options{
 		ErrorHandler:    errorHandler,
 		EnableDebugMode: true,
-		BindingsPath:    "./examples/query-mutations/client",
 	})
 	if err != nil {
 		slog.Error("Failed to create Robin instance", slog.String("error", err.Error()))
 		return
 	}
 
-	instance := r.
+	instance, err := r.
 		Add(robin.Query("ping", ping)).
 		Add(robin.Query("getUser", getUser)).
 		Add(robin.Query("getUsersByIds", getUsersByIds)).
@@ -73,6 +72,10 @@ func main() {
 		Add(robin.Mutation("addUser", addUser)).
 		Add(robin.Mutation("deleteUser", deleteUser)).
 		Build()
+	if err != nil {
+		slog.Error("Failed to build Robin instance", slog.String("error", err.Error()))
+		return
+	}
 
 	instance.Serve()
 

@@ -6,13 +6,17 @@ import (
 	"go.trulyao.dev/robin"
 )
 
-// TODO: take in sqlc query interface here instead
+// TODO: use bbolt.DB
 type handler struct {
 	db *sql.DB
 }
 
 func New(db *sql.DB) *handler {
 	return &handler{db}
+}
+
+func (h *handler) Ping(ctx *robin.Context, _ robin.Void) (string, error) {
+	return "pong", nil
 }
 
 // TODO: fix the stubs

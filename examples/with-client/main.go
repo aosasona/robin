@@ -28,14 +28,23 @@ func main() {
 	var db *sql.DB
 	h := handler.New(db)
 
-	i := r.Add(robin.Query("list", h.List)).
-		Add(robin.Mutation("create", h.Create)).
+	i, err := r.
+		Add(robin.Query("ping", h.Ping)).
+		Add(robin.Query("todos.list", h.List)).
+		Add(robin.Mutation("todo.create", h.Create)).
 		Build()
+	if err != nil {
+		slog.Error("Failed to build Robin instance", slog.String("error", err.Error()))
+		return
+	}
 
 	if err := i.Export(); err != nil {
 		slog.Error("Failed to export client", slog.String("error", err.Error()))
 		return
 	}
 
-	i.Serve()
+	if err := i.Serve(); err != nil {
+		slog.Error("Failed to serve Robin instance", slog.String("error", err.Error()))
+		return
+	}
 }

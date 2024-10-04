@@ -19,11 +19,11 @@ var unexpectedErr = func(message string) error {
 
 // This is just a phanton type that is used to dynamically build the real schema
 type (
-	__robin_schema struct{}
+	_RobinSchema struct{}
 
-	__robin_export struct {
-		Queries   __robin_schema `mirror:"name:queries"`
-		Mutations __robin_schema `mirror:"name:mutations"`
+	_RobinExport struct {
+		Queries   _RobinSchema `mirror:"name:queries"`
+		Mutations _RobinSchema `mirror:"name:mutations"`
 	}
 )
 
@@ -45,9 +45,9 @@ func New(procedures []types.Procedure) *generator {
 // Generates the typescript schema for the given procedures
 func (g *generator) GenerateSchema() (string, error) {
 	g.mirrorInstance.Parser().OnParseItem(g.onParseItem)
-	g.mirrorInstance.Parser().
-		AddCustomType("__robin_void", &parser.Scalar{ItemType: parser.TypeVoid})
-	g.mirrorInstance.AddSources(__robin_export{})
+	_ = g.mirrorInstance.Parser().
+		AddCustomType("_RobinVoid", &parser.Scalar{ItemType: parser.TypeVoid})
+	g.mirrorInstance.AddSources(_RobinExport{})
 
 	target := typescript.DefaultConfig().
 		// Inliing here is required for the actual schema bits to be in the final export rather than separately
@@ -65,7 +65,7 @@ func (g *generator) onParseItem(sourceName string, target parser.Item) error {
 	switch item := target.(type) {
 	case *parser.Struct:
 		switch item.Name() {
-		case "__robin_export":
+		case "_RobinExport":
 			return g.handleClientType(item)
 
 		default:
@@ -116,7 +116,9 @@ func (g *generator) handleClientType(item *parser.Struct) error {
 					{ItemName: "payload", BaseItem: payloadItem},
 				},
 			},
-			Meta: meta.Meta{},
+			Meta: meta.Meta{
+				Name: fmt.Sprintf(`"%s"`, procedure.Name()),
+			},
 		}
 
 		switch procedure.Type() {
