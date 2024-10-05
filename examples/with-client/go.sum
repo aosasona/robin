@@ -12,3 +12,5 @@ go.trulyao.dev/mirror/v2 v2.7.1 h1:0fS1FvvKC87IT58t/i4E+mpVeNslu3+AZXHIZ+382AY=
 go.trulyao.dev/mirror/v2 v2.7.1/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
 go.trulyao.dev/seer v1.0.1 h1:PdQnRwL2RzHtiG/3mDXBTVNI8GMsblMtsHLmQ52Qhb8=
 go.trulyao.dev/seer v1.0.1/go.mod h1:AkfgfcykpGgZOg3EvF0MPIU6pJMRRmt53T5zOH5dbzs=
+golang.org/x/text v0.19.0 h1:kTxAhCbGbxhK0IwgSKiMO5awPoDQ0RpfiVYBfK860YM=
+golang.org/x/text v0.19.0/go.mod h1:BuEKDfySbSR4drPmRPG/7iBdf8hvFMuRexcpahXilzY=

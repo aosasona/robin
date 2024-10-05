@@ -10,12 +10,12 @@ import (
 	_ "go.trulyao.dev/seer"
 )
 
-// TODO: add SQlite
 func main() {
 	r, err := robin.New(robin.Options{
 		CodegenOptions: robin.CodegenOptions{
 			Path:             "./client",
 			GenerateBindings: true,
+			GenerateSchema:   false,
 		},
 		EnableDebugMode: false,
 	})
@@ -24,7 +24,7 @@ func main() {
 		return
 	}
 
-	// TODO: replace with actual database
+	// TODO: replace with BoltDB
 	var db *sql.DB
 	h := handler.New(db)
 
