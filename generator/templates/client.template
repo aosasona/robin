@@ -43,11 +43,13 @@ export type ResultOf<CSchema extends ClientSchema, PType extends ProcedureType, 
   PType
 >[PName]["result"];
 
-export type ProcedureResult<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {
+export type ProcedureResult<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {{if .UseUnionResult}}
+  | { ok: false; error: unknown; }
+  | { ok: true; data: ResultOf<CSchema, PType, PName> };{{else}}{
   ok: boolean;
   data?: ResultOf<CSchema, PType, PName>;
   error?: unknown;
-}
+}{{end}}
 
 export type RawCallOpts<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {
   name: PName;
@@ -60,31 +62,10 @@ export type CallOpts<CSchema extends ClientSchema, PType extends ProcedureType, 
   "payload"
 >;
 
-
+{{if .IncludeSchema}}
 /** ================ GENERATED SCHEMA ================ **/
-export type Schema = {
-    queries: {
-        "ping": {
-            result: string;
-            payload: string;
-        };
-        "todos.list": {
-            result: Array<string>;
-            payload: void;
-        };
-    };
-    mutations: {
-        "todos.create": {
-            result: {
-                title: string;
-            };
-            payload: {
-                title: string;
-            };
-        };
-    };
-};
-
+{{.Schema}}
+{{end}}
 
 // Default client function that uses the fetch API which is available in most environments
 export function defaultClientFn(url: string, opts?: RequestOpts): Promise<Response> {
@@ -100,48 +81,20 @@ export function defaultClientFn(url: string, opts?: RequestOpts): Promise<Respon
  *
  * These classes are used to group query and mutation methods together
  */
-class Queries<CSchema extends ClientSchema = Schema> {
+class Queries<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> {
   constructor(private client: Client<CSchema>) {}
 
-  
-  /**
-   * @procedure ping
-   *
-   * @returns Promise<ProcedureResult<CSchema, "query", "ping">>
-   * @throws {ProcedureCallError} if the procedure call fails
-   */
-  async ping(payload: PayloadOf<CSchema, "query", "ping">, opts?: CallOpts<CSchema, "query", "ping">): Promise<ProcedureResult<CSchema, "query", "ping">> {
-    return await this.client.call("query", { ...opts, name: "ping", payload: payload });
-  }
-
-  /**
-   * @procedure todos.list
-   *
-   * @returns Promise<ProcedureResult<CSchema, "query", "todos.list">>
-   * @throws {ProcedureCallError} if the procedure call fails
-   */
-  async todosList(opts?: CallOpts<CSchema, "query", "todos.list">): Promise<ProcedureResult<CSchema, "query", "todos.list">> {
-    return await this.client.call("query", { ...opts, name: "todos.list", payload: undefined });
-  }
+  {{.QueryMethods}}
 }
 
-class Mutations<CSchema extends ClientSchema = Schema> {
+class Mutations<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> {
   constructor(private client: Client<CSchema>) {}
 
-  
-  /**
-   * @procedure todos.create
-   *
-   * @returns Promise<ProcedureResult<CSchema, "query", "todos.create">>
-   * @throws {ProcedureCallError} if the procedure call fails
-   */
-  async todosCreate(payload: PayloadOf<CSchema, "mutation", "todos.create">, opts?: CallOpts<CSchema, "mutation", "todos.create">): Promise<ProcedureResult<CSchema, "mutation", "todos.create">> {
-    return await this.client.call("mutation", { ...opts, name: "todos.create", payload: payload });
-  }
+  {{.MutationMethods}}
 }
 
 /** ==================== CLIENT ==================== **/
-class Client<CSchema extends ClientSchema = Schema> {
+class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> {
   private endpoint: string;
   private clientFn: HttpClientFn;
 
@@ -162,7 +115,7 @@ class Client<CSchema extends ClientSchema = Schema> {
 
   // Create a new client instance
   // deno-lint-ignore no-misused-new
-  public static new<CSchema extends ClientSchema = Schema>(opts: ClientOpts): Client<CSchema> {
+  public static new<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}>(opts: ClientOpts): Client<CSchema> {
     return new Client<CSchema>(opts);
   }
 

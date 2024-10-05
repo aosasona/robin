@@ -1,30 +1,34 @@
 package handler
 
 import (
-	"database/sql"
 	"fmt"
 
+	"go.etcd.io/bbolt"
 	"go.trulyao.dev/robin"
 )
 
-// TODO: use bbolt.DB
 type handler struct {
-	db *sql.DB
+	db *bbolt.DB
 }
 
-func New(db *sql.DB) *handler {
+type CreateInput struct {
+	Title string `json:"title"`
+}
+
+func New(db *bbolt.DB) *handler {
 	return &handler{db}
 }
 
 func (h *handler) Ping(ctx *robin.Context, data string) (string, error) {
-	return fmt.Sprintf("Pong: %s", data), nil
+	return "Hey", nil
 }
 
 // TODO: fix the stubs
 func (h *handler) List(ctx *robin.Context, _ robin.Void) ([]string, error) {
-	return []string{}, nil
+	return []string{"Hello, world!"}, nil
 }
 
-func (h *handler) Create(ctx *robin.Context, _ robin.Void) (string, error) {
-	return "", nil
+func (h *handler) Create(ctx *robin.Context, input CreateInput) (CreateInput, error) {
+	fmt.Println("Creating todo with title:", input.Title)
+	return input, nil
 }

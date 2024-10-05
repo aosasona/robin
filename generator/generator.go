@@ -46,8 +46,14 @@ type (
 		// The generated schema type
 		Schema string
 
-		// The generated methods
-		Methods string
+		// The generated query methods
+		QueryMethods string
+
+		// The generated mutation methods
+		MutationMethods string
+
+		// Whether to use the union result type or not - when enabled, the result type will be a uniion of the Ok and Error types which would disallow access to any of the fields without checking the `ok` field first
+		UseUnionResult bool
 	}
 
 	MethodTemplateOpts struct {
@@ -63,6 +69,14 @@ type (
 
 		// The generated schema type
 		Schema string
+
+		// Whether to use the union result type or not - when enabled, the result type will be a uniion of the Ok and Error types which would disallow access to any of the fields without checking the `ok` field first
+		UseUnionResult bool
+	}
+
+	GeneratedMethods struct {
+		Mutations []string
+		Queries   []string
 	}
 )
 
@@ -79,21 +93,23 @@ func New(procedures []types.Procedure) *generator {
 }
 
 func (g *generator) GenerateBindings(opts GenerateBindingsOpts) (string, error) {
-	bindingsTemplate, err := template.ParseFS(templates.ClientTemplateFS, "client.template.ts")
+	bindingsTemplate, err := template.ParseFS(templates.ClientTemplateFS, "client.template")
 	if err != nil {
 		return "", fmt.Errorf("failed to parse bindings template: %w", err)
 	}
 
-	methodsString, err := g.GenerateMethods()
+	methods, err := g.GenerateMethods()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate methods: %w", err)
 	}
 
 	var builder strings.Builder
 	if err := bindingsTemplate.Execute(&builder, TemplateOpts{
-		IncludeSchema: opts.IncludeSchema,
-		Schema:        strings.TrimSpace(opts.Schema),
-		Methods:       methodsString,
+		IncludeSchema:   opts.IncludeSchema,
+		Schema:          strings.TrimSpace(opts.Schema),
+		MutationMethods: strings.Join(methods.Mutations, "\n"),
+		QueryMethods:    strings.Join(methods.Queries, "\n"),
+		UseUnionResult:  opts.UseUnionResult,
 	}); err != nil {
 		return "", fmt.Errorf("failed to execute bindings template: %w", err)
 	}
@@ -101,14 +117,19 @@ func (g *generator) GenerateBindings(opts GenerateBindingsOpts) (string, error) 
 	return builder.String(), nil
 }
 
-func (g *generator) GenerateMethods() (string, error) {
-	var methods []string
+func (g *generator) GenerateMethods() (*GeneratedMethods, error) {
+	var mutations, queries []string
 
 	for _, procedure := range g.procedures {
 		methodTemplate := `
-  /** @procedure {{ printf "%q" .OriginalName }} */
-  async {{.Name}}({{ if .HasPayload }}payload: PayloadOf<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>, {{end}}opts?: CallOpts<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>): Promise<ResultOf<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>> {
-    return await this.call({{ printf "%q" .Type }}, { name: {{ printf "%q" .OriginalName }}, payload: {{ if .HasPayload }}payload{{else}}undefined{{end}}, ...opts});
+  /**
+   * @procedure {{ .OriginalName }}
+   *
+   * @returns Promise<ProcedureResult<CSchema, "query", {{ printf "%q" .OriginalName }}>>
+   * @throws {ProcedureCallError} if the procedure call fails
+   */
+  async {{.Name}}({{ if .HasPayload }}payload: PayloadOf<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>, {{end}}opts?: CallOpts<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>): Promise<ProcedureResult<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>> {
+    return await this.client.call({{ printf "%q" .Type }}, { ...opts, name: {{ printf "%q" .OriginalName }}, payload: {{ if .HasPayload }}payload{{else}}undefined{{end}} });
   }`
 
 		var procedureType string
@@ -118,7 +139,7 @@ func (g *generator) GenerateMethods() (string, error) {
 		case types.ProcedureTypeMutation:
 			procedureType = "mutation"
 		default: // This should never happen
-			return "", fmt.Errorf("unknown procedure type: %s", procedure.Type())
+			return &GeneratedMethods{}, fmt.Errorf("unknown procedure type: %s", procedure.Type())
 		}
 
 		opts := MethodTemplateOpts{
@@ -130,18 +151,22 @@ func (g *generator) GenerateMethods() (string, error) {
 
 		method, err := template.New("method").Parse(methodTemplate)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse method template: %w", err)
+			return &GeneratedMethods{}, fmt.Errorf("failed to parse method template: %w", err)
 		}
 
 		var methodBuilder strings.Builder
 		if err := method.Execute(&methodBuilder, opts); err != nil {
-			return "", fmt.Errorf("failed to execute method template: %w", err)
+			return &GeneratedMethods{}, fmt.Errorf("failed to execute method template: %w", err)
 		}
 
-		methods = append(methods, methodBuilder.String())
+		if procedure.Type() == types.ProcedureTypeQuery {
+			queries = append(queries, methodBuilder.String())
+		} else {
+			mutations = append(mutations, methodBuilder.String())
+		}
 	}
 
-	return strings.Join(methods, "\n"), nil
+	return &GeneratedMethods{Queries: queries, Mutations: mutations}, nil
 }
 
 // Generates the typescript schema for the given procedures
