@@ -8,8 +8,6 @@ import (
 	"go.trulyao.dev/robin"
 )
 
-const port = 8081
-
 type Error struct {
 	Message string
 	Code    int

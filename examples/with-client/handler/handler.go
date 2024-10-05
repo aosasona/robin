@@ -23,7 +23,6 @@ func (h *handler) Ping(ctx *robin.Context, data string) (string, error) {
 	return "Hey", nil
 }
 
-// TODO: fix the stubs
 func (h *handler) List(ctx *robin.Context, _ robin.Void) ([]string, error) {
 	return []string{"Hello, world!"}, nil
 }

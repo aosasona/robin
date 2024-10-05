@@ -8,3 +8,5 @@ github.com/go-viper/mapstructure/v2 v2.2.0 h1:zGE1Kaz78LVwzU0kOfZuqwKKiG1gLkHTZ/
 github.com/go-viper/mapstructure/v2 v2.2.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 go.trulyao.dev/mirror/v2 v2.7.1 h1:0fS1FvvKC87IT58t/i4E+mpVeNslu3+AZXHIZ+382AY=
 go.trulyao.dev/mirror/v2 v2.7.1/go.mod h1:p34LklPOZN3uNV/in0igi3Vv2NqvThQSzY5A/qzVuRo=
+golang.org/x/text v0.19.0 h1:kTxAhCbGbxhK0IwgSKiMO5awPoDQ0RpfiVYBfK860YM=
+golang.org/x/text v0.19.0/go.mod h1:BuEKDfySbSR4drPmRPG/7iBdf8hvFMuRexcpahXilzY=
