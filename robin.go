@@ -56,6 +56,9 @@ type (
 
 		// Whether to generate the typescript schema separately or not
 		GenerateSchema bool
+
+		// Whether to use the union result type or not - when enabled, the result type will be a uniion of the Ok and Error types which would disallow access to any of the fields without checking the `ok` field first
+		UseUnionResult bool
 	}
 
 	Options struct {
@@ -289,5 +292,6 @@ func (r *Robin) extractCodegenOptions(opts *Options) (CodegenOptions, error) {
 		Path:             opts.CodegenOptions.Path,
 		GenerateBindings: enableBindingsGen,
 		GenerateSchema:   enableSchemaGen,
+		UseUnionResult:   opts.CodegenOptions.UseUnionResult,
 	}, nil
 }

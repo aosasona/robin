@@ -43,7 +43,11 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 	mux := http.NewServeMux()
 	mux.Handle("POST /"+i.route, i.Handler())
 
-	slog.Info("📡 Robin server is listening", slog.Int("port", i.port))
+	slog.Info(
+		"📡 Robin server is listening",
+		slog.Int("port", i.port),
+		slog.String("route", "/"+i.route),
+	)
 	return http.ListenAndServe(fmt.Sprintf(":%d", i.port), mux)
 }
 
@@ -98,8 +102,9 @@ func (i *Instance) Export(optPath ...string) error {
 	// Generate the methods if they're enabled and write them to a file
 	if i.codegenOptions.GenerateBindings {
 		bindingsString, err := g.GenerateBindings(generator.GenerateBindingsOpts{
-			IncludeSchema: !i.codegenOptions.GenerateSchema,
-			Schema:        schemaString,
+			IncludeSchema:  !i.codegenOptions.GenerateSchema,
+			Schema:         schemaString,
+			UseUnionResult: i.codegenOptions.UseUnionResult,
 		})
 		if err != nil {
 			return err
