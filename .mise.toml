@@ -1,10 +1,16 @@
 settings.experimental = true
 
 [tools]
-go = "1.22.2"
+go = "1.23.2"
 watchexec = "1.25.1"
 
 [tasks."example:qm"]
 description = "Run the example in query-mutations"
 run = "go run ./examples/query-mutations/main.go"
 sources = ["./*.go", "./examples/query-mutations/main.go"]
+
+[tasks."example:client"]
+description = "Run the example in with-client"
+run = "go run ."
+sources = ["generator/**/*.{go,ts}", "internal/**/*.go", "**/*.go"]
+dir = "./examples/with-client"
