@@ -40,16 +40,11 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 		i.route = strings.TrimSpace(strings.Trim(opts[0].Route, "/"))
 	}
 
-	i.port = i.port
-	i.route = i.route
-
 	mux := http.NewServeMux()
 	mux.Handle("POST /"+i.route, i.Handler())
 
 	slog.Info("📡 Robin server is listening", slog.Int("port", i.port))
-	http.ListenAndServe(fmt.Sprintf(":%d", i.port), mux)
-
-	return nil
+	return http.ListenAndServe(fmt.Sprintf(":%d", i.port), mux)
 }
 
 // Handler returns the robin handler to be used with a custom (mux) router
@@ -75,11 +70,6 @@ func (i *Instance) Export(optPath ...string) error {
 		return nil
 	}
 
-	// Automatically enable schema generation if bindings are enabled
-	if !i.codegenOptions.GenerateSchema && i.codegenOptions.GenerateBindings {
-		i.codegenOptions.GenerateSchema = true
-	}
-
 	// Figure out what path to use depending on user configurations
 	path := i.codegenOptions.Path
 	if len(optPath) > 0 {
@@ -98,26 +88,46 @@ func (i *Instance) Export(optPath ...string) error {
 		return err
 	}
 
-	// Write the schema to a file
-	if err := i.writeSchemaToFile(path, strings.TrimSpace(schemaString)); err != nil {
-		return err
+	// Write the schema to a file if it's enabled
+	if i.codegenOptions.GenerateSchema && len(schemaString) > 0 {
+		if err := i.writeSchemaToFile(path, strings.TrimSpace(schemaString)); err != nil {
+			return err
+		}
 	}
 
-	// TODO: check if bindings generation is enabled and generate the bindings
+	// Generate the methods if they're enabled and write them to a file
+	if i.codegenOptions.GenerateBindings {
+		bindingsString, err := g.GenerateBindings(generator.GenerateBindingsOpts{
+			IncludeSchema: !i.codegenOptions.GenerateSchema,
+			Schema:        schemaString,
+		})
+		if err != nil {
+			return err
+		}
 
+		if err := i.writeBindingsToFile(path, bindingsString); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (i *Instance) writeBindingsToFile(path, bindings string) error {
+	filePath := fmt.Sprintf("%s/bindings.ts", path)
+
+	if err := os.WriteFile(filePath, []byte(bindings), 0o644); err != nil {
+		return fmt.Errorf("failed to write bindings to file: %s", err.Error())
+	}
+
+	slog.Info("📦 Typescript bindings exported successfully", slog.String("path", filePath))
 	return nil
 }
 
 func (i *Instance) writeSchemaToFile(path, schema string) error {
 	filePath := fmt.Sprintf("%s/schema.ts", path)
 
-	file, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to create schema file: %s", err.Error())
-	}
-	defer file.Close()
-
-	if _, err := file.WriteString(schema); err != nil {
+	if err := os.WriteFile(filePath, []byte(schema), 0o644); err != nil {
 		return fmt.Errorf("failed to write schema to file: %s", err.Error())
 	}
 

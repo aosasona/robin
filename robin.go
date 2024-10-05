@@ -44,17 +44,17 @@ var procedureNameRegex = regexp.MustCompile(`(?m)^([a-zA-Z0-9]+)([_\.\-]?[a-zA-Z
 
 type (
 	CodegenOptions struct {
-		// Path to the generated folder for typescript bindings and schema
+		// Path to the generated folder for typescript bindings and/or schema
 		Path string
 
 		// Whether to generate the typescript bindings or not.
 		//
 		// NOTE: You can simply generate the schema without the bindings by enabling `GenerateSchema` and disabling this
 		//
-		// WARNING: If this is enabled, `GenerateSchema` will be ignored and schema generation will be enabled automatically
+		// WARNING: If this is enabled and `GenerateSchema` is disabled, the schema will be generated as part of the bindings in the same file
 		GenerateBindings bool
 
-		// Whether to generate the typescript schema or not
+		// Whether to generate the typescript schema separately or not
 		GenerateSchema bool
 	}
 

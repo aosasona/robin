@@ -3,13 +3,19 @@ package generator
 import (
 	"fmt"
 	"reflect"
+	"regexp"
+	"strings"
+	"text/template"
 
 	"go.trulyao.dev/mirror/v2"
 	"go.trulyao.dev/mirror/v2/config"
 	"go.trulyao.dev/mirror/v2/extractor/meta"
 	"go.trulyao.dev/mirror/v2/generator/typescript"
 	"go.trulyao.dev/mirror/v2/parser"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
+	"go.trulyao.dev/robin/generator/templates"
 	"go.trulyao.dev/robin/types"
 )
 
@@ -27,10 +33,40 @@ type (
 	}
 )
 
-type generator struct {
-	procedures     []types.Procedure
-	mirrorInstance *mirror.Mirror
-}
+type (
+	generator struct {
+		procedures     []types.Procedure
+		mirrorInstance *mirror.Mirror
+	}
+
+	TemplateOpts struct {
+		// Whether to include the schema in the generated bindings file or not
+		IncludeSchema bool
+
+		// The generated schema type
+		Schema string
+
+		// The generated methods
+		Methods string
+	}
+
+	MethodTemplateOpts struct {
+		OriginalName string
+		Name         string
+		Type         string
+		HasPayload   bool
+	}
+
+	GenerateBindingsOpts struct {
+		// Whether to include the schema in the generated bindings file or not
+		IncludeSchema bool
+
+		// The generated schema type
+		Schema string
+	}
+)
+
+var invalidCharsRegex = regexp.MustCompile(`[^a-zA-Z0-9]`)
 
 func New(procedures []types.Procedure) *generator {
 	m := mirror.New(config.Config{
@@ -40,6 +76,72 @@ func New(procedures []types.Procedure) *generator {
 	})
 
 	return &generator{procedures: procedures, mirrorInstance: m}
+}
+
+func (g *generator) GenerateBindings(opts GenerateBindingsOpts) (string, error) {
+	bindingsTemplate, err := template.ParseFS(templates.ClientTemplateFS, "client.template.ts")
+	if err != nil {
+		return "", fmt.Errorf("failed to parse bindings template: %w", err)
+	}
+
+	methodsString, err := g.GenerateMethods()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate methods: %w", err)
+	}
+
+	var builder strings.Builder
+	if err := bindingsTemplate.Execute(&builder, TemplateOpts{
+		IncludeSchema: opts.IncludeSchema,
+		Schema:        strings.TrimSpace(opts.Schema),
+		Methods:       methodsString,
+	}); err != nil {
+		return "", fmt.Errorf("failed to execute bindings template: %w", err)
+	}
+
+	return builder.String(), nil
+}
+
+func (g *generator) GenerateMethods() (string, error) {
+	var methods []string
+
+	for _, procedure := range g.procedures {
+		methodTemplate := `
+  /** @procedure {{ printf "%q" .OriginalName }} */
+  async {{.Name}}({{ if .HasPayload }}payload: PayloadOf<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>, {{end}}opts?: CallOpts<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>): Promise<ResultOf<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>> {
+    return await this.call({{ printf "%q" .Type }}, { name: {{ printf "%q" .OriginalName }}, payload: {{ if .HasPayload }}payload{{else}}undefined{{end}}, ...opts});
+  }`
+
+		var procedureType string
+		switch procedure.Type() {
+		case types.ProcedureTypeQuery:
+			procedureType = "query"
+		case types.ProcedureTypeMutation:
+			procedureType = "mutation"
+		default: // This should never happen
+			return "", fmt.Errorf("unknown procedure type: %s", procedure.Type())
+		}
+
+		opts := MethodTemplateOpts{
+			OriginalName: procedure.Name(),
+			Name:         NormalizeProcedureName(procedure.Name()),
+			Type:         procedureType,
+			HasPayload:   reflect.TypeOf(procedure.PayloadInterface()).Name() != "_RobinVoid",
+		}
+
+		method, err := template.New("method").Parse(methodTemplate)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse method template: %w", err)
+		}
+
+		var methodBuilder strings.Builder
+		if err := method.Execute(&methodBuilder, opts); err != nil {
+			return "", fmt.Errorf("failed to execute method template: %w", err)
+		}
+
+		methods = append(methods, methodBuilder.String())
+	}
+
+	return strings.Join(methods, "\n"), nil
 }
 
 // Generates the typescript schema for the given procedures
@@ -160,4 +262,23 @@ func (g *generator) getProcedureFields(
 	}
 
 	return queries, mutations, nil
+}
+
+// NormalizeProcedureName normalizes the procedure name to a valid typescript function name
+// For example, todo.create -> todoCreate, sign-in -> signIn etc
+// This is done to ensure that the generated method names are valid
+func NormalizeProcedureName(name string) string {
+	// Split the name by spaces and capitalize each word
+	words := strings.Split(invalidCharsRegex.ReplaceAllString(name, " "), " ")
+
+	for i, word := range words {
+		word = strings.ToLower(word)
+		if i == 0 {
+			continue
+		}
+
+		words[i] = cases.Title(language.English).String(word)
+	}
+
+	return strings.Join(words, "")
 }
