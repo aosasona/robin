@@ -25,23 +25,78 @@ type Instance struct {
 	route string
 }
 
+type CorsOptions struct {
+	// Allowed origins
+	Origins []string
+
+	// Allowed headers
+	Headers []string
+
+	// Allowed methods
+	Methods []string
+
+	// Exposed headers
+	ExposedHeaders []string
+
+	// Allow credentials
+	AllowCredentials bool
+
+	// Max age
+	MaxAge int
+}
+
 type ServeOptions struct {
 	// Port to run the server on
 	Port int
 
 	// Route to run the robin handler on
 	Route string
+
+	// CORS options
+	CorsOptions *CorsOptions
+}
+
+func cors(w *http.ResponseWriter, opts *CorsOptions) {
+	(*w).Header().Set("Access-Control-Allow-Origin", strings.Join(opts.Origins, ","))
+	(*w).Header().Set("Access-Control-Allow-Headers", strings.Join(opts.Headers, ","))
+	(*w).Header().Set("Access-Control-Allow-Methods", strings.Join(opts.Methods, ","))
+	(*w).Header().Set("Access-Control-Expose-Headers", strings.Join(opts.ExposedHeaders, ","))
+	(*w).Header().Set("Access-Control-Allow-Credentials", fmt.Sprintf("%t", opts.AllowCredentials))
+
+	if opts.MaxAge > 0 {
+		(*w).Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", opts.MaxAge))
+	}
 }
 
 // Serve starts the robin server on the specified port
 func (i *Instance) Serve(opts ...ServeOptions) error {
+	corsOpts := &CorsOptions{
+		Origins: []string{"*"},
+		Headers: []string{"Content-Type", "Authorization"},
+		Methods: []string{"POST", "OPTIONS"},
+	}
+
 	if len(opts) > 0 {
 		i.port = opts[0].Port
 		i.route = strings.TrimSpace(strings.Trim(opts[0].Route, "/"))
+		if opts[0].CorsOptions != nil {
+			corsOpts = opts[0].CorsOptions
+		}
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("POST /"+i.route, i.Handler())
+	mux.HandleFunc("POST /"+i.route, func(w http.ResponseWriter, r *http.Request) {
+		cors(&w, corsOpts)
+		i.Handler()(w, r)
+	})
+
+	// Handle CORS preflight requests
+	mux.HandleFunc("/"+i.route, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			cors(&w, corsOpts)
+			return
+		}
+	})
 
 	slog.Info(
 		"📡 Robin server is listening",
