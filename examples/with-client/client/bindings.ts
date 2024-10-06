@@ -102,7 +102,6 @@ export function defaultClientFn(url: string, opts?: RequestOpts): Promise<Respon
  */
 class Queries<CSchema extends ClientSchema = Schema> {
   constructor(private client: Client<CSchema>) {}
-
   
   /**
    * @procedure ping
@@ -127,7 +126,6 @@ class Queries<CSchema extends ClientSchema = Schema> {
 
 class Mutations<CSchema extends ClientSchema = Schema> {
   constructor(private client: Client<CSchema>) {}
-
   
   /**
    * @procedure todos.create

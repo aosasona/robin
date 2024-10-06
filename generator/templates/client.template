@@ -83,13 +83,11 @@ export function defaultClientFn(url: string, opts?: RequestOpts): Promise<Respon
  */
 class Queries<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> {
   constructor(private client: Client<CSchema>) {}
-
   {{.QueryMethods}}
 }
 
 class Mutations<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> {
   constructor(private client: Client<CSchema>) {}
-
   {{.MutationMethods}}
 }
 
