@@ -107,9 +107,13 @@ console.log("todos -> ", todos);
 console.log("newTodo -> ", newTodo);
 ```
 
-Running the usage script (e.g. using `bun ./usage.ts`) will yield this:
+Running the usage script will yield this:
 
 ```sh
+bun ./usage.ts
+```
+
+```text
 todos ->  [
   {
     title: "Hello world!",

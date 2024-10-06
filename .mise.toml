@@ -7,10 +7,23 @@ watchexec = "1.25.1"
 [tasks."example:qm"]
 description = "Run the example in query-mutations"
 run = "go run ./examples/query-mutations/main.go"
-sources = ["./*.go", "./examples/query-mutations/main.go"]
+sources = [
+  "generator/**/*.go",
+  "internal/**/*.go",
+  "./examples/query-mutations/main.go",
+]
 
 [tasks."example:client"]
 description = "Run the example in with-client"
 run = "go run ."
-sources = ["generator/**/*.{go,ts}", "internal/**/*.go", "**/*.go"]
+sources = [
+  "generator/**/*.go",
+  "internal/**/*.go",
+  "examples/with-client/**/*.go",
+]
 dir = "./examples/with-client"
+
+[tasks."example:simple"]
+description = "Run the example in simple"
+run = "go run ."
+dir = "./examples/simple"
