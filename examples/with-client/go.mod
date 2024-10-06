@@ -6,7 +6,7 @@ replace go.trulyao.dev/robin => ../..
 
 require (
 	go.etcd.io/bbolt v1.3.11
-	go.trulyao.dev/robin v0.0.0-00010101000000-000000000000
+	go.trulyao.dev/robin v0.1.0
 	go.trulyao.dev/seer v1.1.0
 )
 

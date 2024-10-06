@@ -64,17 +64,34 @@ export type CallOpts<CSchema extends ClientSchema, PType extends ProcedureType, 
 /** ================ GENERATED SCHEMA ================ **/
 export type Schema = {
     queries: {
-        "ping": {
-            result: string;
-            payload: string;
+        "whoami": {
+            result: {
+                user_id: string;
+                created_at: string;
+            };
+            payload: void;
         };
-        "todos.list": {
+        "list-todos": {
             result: Array<string>;
             payload: void;
         };
     };
     mutations: {
-        "todos.create": {
+        "sign-in": {
+            result: {
+                user_id: string;
+                created_at: string;
+            } | null;
+            payload: void;
+        };
+        "sign-up": {
+            result: {
+                user_id: string;
+                created_at: string;
+            } | null;
+            payload: void;
+        };
+        "create-todo": {
             result: {
                 title: string;
             };
@@ -104,23 +121,23 @@ class Queries<CSchema extends ClientSchema = Schema> {
   constructor(private client: Client<CSchema>) {}
   
   /**
-   * @procedure ping
+   * @procedure whoami
    *
-   * @returns Promise<ProcedureResult<CSchema, "query", "ping">>
+   * @returns Promise<ProcedureResult<CSchema, "query", "whoami">>
    * @throws {ProcedureCallError} if the procedure call fails
    */
-  async ping(payload: PayloadOf<CSchema, "query", "ping">, opts?: CallOpts<CSchema, "query", "ping">): Promise<ProcedureResult<CSchema, "query", "ping">> {
-    return await this.client.call("query", { ...opts, name: "ping", payload: payload });
+  async whoami(opts?: CallOpts<CSchema, "query", "whoami">): Promise<ProcedureResult<CSchema, "query", "whoami">> {
+    return await this.client.call("query", { ...opts, name: "whoami", payload: undefined });
   }
 
   /**
-   * @procedure todos.list
+   * @procedure list-todos
    *
-   * @returns Promise<ProcedureResult<CSchema, "query", "todos.list">>
+   * @returns Promise<ProcedureResult<CSchema, "query", "list-todos">>
    * @throws {ProcedureCallError} if the procedure call fails
    */
-  async todosList(opts?: CallOpts<CSchema, "query", "todos.list">): Promise<ProcedureResult<CSchema, "query", "todos.list">> {
-    return await this.client.call("query", { ...opts, name: "todos.list", payload: undefined });
+  async listTodos(opts?: CallOpts<CSchema, "query", "list-todos">): Promise<ProcedureResult<CSchema, "query", "list-todos">> {
+    return await this.client.call("query", { ...opts, name: "list-todos", payload: undefined });
   }
 }
 
@@ -128,13 +145,33 @@ class Mutations<CSchema extends ClientSchema = Schema> {
   constructor(private client: Client<CSchema>) {}
   
   /**
-   * @procedure todos.create
+   * @procedure sign-in
    *
-   * @returns Promise<ProcedureResult<CSchema, "query", "todos.create">>
+   * @returns Promise<ProcedureResult<CSchema, "query", "sign-in">>
    * @throws {ProcedureCallError} if the procedure call fails
    */
-  async todosCreate(payload: PayloadOf<CSchema, "mutation", "todos.create">, opts?: CallOpts<CSchema, "mutation", "todos.create">): Promise<ProcedureResult<CSchema, "mutation", "todos.create">> {
-    return await this.client.call("mutation", { ...opts, name: "todos.create", payload: payload });
+  async signIn(opts?: CallOpts<CSchema, "mutation", "sign-in">): Promise<ProcedureResult<CSchema, "mutation", "sign-in">> {
+    return await this.client.call("mutation", { ...opts, name: "sign-in", payload: undefined });
+  }
+
+  /**
+   * @procedure sign-up
+   *
+   * @returns Promise<ProcedureResult<CSchema, "query", "sign-up">>
+   * @throws {ProcedureCallError} if the procedure call fails
+   */
+  async signUp(opts?: CallOpts<CSchema, "mutation", "sign-up">): Promise<ProcedureResult<CSchema, "mutation", "sign-up">> {
+    return await this.client.call("mutation", { ...opts, name: "sign-up", payload: undefined });
+  }
+
+  /**
+   * @procedure create-todo
+   *
+   * @returns Promise<ProcedureResult<CSchema, "query", "create-todo">>
+   * @throws {ProcedureCallError} if the procedure call fails
+   */
+  async createTodo(payload: PayloadOf<CSchema, "mutation", "create-todo">, opts?: CallOpts<CSchema, "mutation", "create-todo">): Promise<ProcedureResult<CSchema, "mutation", "create-todo">> {
+    return await this.client.call("mutation", { ...opts, name: "create-todo", payload: payload });
   }
 }
 

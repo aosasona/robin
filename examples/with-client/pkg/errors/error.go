@@ -1,4 +1,4 @@
-package utils
+package apperrors
 
 type Error struct {
 	Message string
