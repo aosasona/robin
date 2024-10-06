@@ -111,4 +111,20 @@ func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
 	return &query[R, B]{name: name, fn: fn, expectsPayload: expectsPayload}
 }
 
+// Alias for `Query` to create a new query procedure
+func Q[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
+	return Query(name, fn)
+}
+
+// Creates a new query with the given name, handler function and middleware functions
+func QueryWithMiddleware[R any, B any](
+	name string,
+	fn QueryFn[R, B],
+	middleware ...types.Middleware,
+) *query[R, B] {
+	q := Query(name, fn)
+	q.middlewareFns = middleware
+	return q
+}
+
 var _ Procedure = (*query[any, any])(nil)

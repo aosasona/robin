@@ -111,4 +111,20 @@ func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
 	return &mutation[R, B]{name: name, fn: fn, expectsPayload: expectsPayload}
 }
 
+// Alias for `Mutation` to create a new mutation procedure
+func M[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
+	return Mutation(name, fn)
+}
+
+// Creates a new mutation with the given name, handler function, and middleware functions
+func MutationWithMiddleware[R any, B any](
+	name string,
+	fn MutationFn[R, B],
+	middleware ...types.Middleware,
+) *mutation[R, B] {
+	m := Mutation(name, fn)
+	m.WithMiddleware(middleware...)
+	return m
+}
+
 var _ Procedure = (*mutation[any, any])(nil)
