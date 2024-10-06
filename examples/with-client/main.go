@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"log/slog"
 
 	"todo/handler"
@@ -39,34 +40,32 @@ func main() {
 		ErrorHandler:    errorHandler,
 	})
 	if err != nil {
-		slog.Error("Failed to create a new Robin instance", slog.String("error", err.Error()))
-		return
+		log.Fatalf("Failed to create a new Robin instance: %s", err)
 	}
 
 	db, err := bbolt.Open("todos.db", 0o666, nil)
 	if err != nil {
-		slog.Error("Failed to open BoltDB", slog.String("error", err.Error()))
+		log.Fatalf("Failed to open BoltDB: %s", err)
 		return
 	}
 
 	h := handler.New(db)
+
 	i, err := r.
 		Add(robin.Query("ping", h.Ping)).
 		Add(robin.Query("todos.list", h.List)).
 		Add(robin.Mutation("todos.create", h.Create)).
 		Build()
 	if err != nil {
-		slog.Error("Failed to build Robin instance", slog.String("error", err.Error()))
-		return
+		log.Fatalf("Failed to build Robin instance: %s", err)
 	}
 
 	if err := i.Export(); err != nil {
-		slog.Error("Failed to export client", slog.String("error", err.Error()))
-		return
+		log.Fatalf("Failed to export client: %s", err)
 	}
 
 	if err := i.Serve(); err != nil {
-		slog.Error("Failed to serve Robin instance", slog.String("error", err.Error()))
+		log.Fatalf("Failed to serve Robin instance: %s", err)
 		return
 	}
 }
