@@ -7,9 +7,8 @@ import SplashScreen from "@ui/splash-screen";
 
 import Index from "./routes";
 
-// TODO: add splash screen
 export default function App() {
-	const [data, _] = createResource(async () => await client.queries.whoami());
+	const [data, _] = createResource(() => client.queries.whoami(), { name: "whoami" });
 
 	return (
 		<>

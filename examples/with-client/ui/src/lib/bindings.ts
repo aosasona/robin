@@ -65,10 +65,7 @@ export type CallOpts<CSchema extends ClientSchema, PType extends ProcedureType, 
 export type Schema = {
     queries: {
         "whoami": {
-            result: {
-                user_id: string;
-                created_at: string;
-            };
+            result: string;
             payload: void;
         };
         "list-todos": {
@@ -79,17 +76,25 @@ export type Schema = {
     mutations: {
         "sign-in": {
             result: {
-                user_id: string;
-                created_at: string;
-            } | null;
-            payload: void;
+                user_id: number;
+                username: string;
+                created_at: number;
+            };
+            payload: {
+                username: string;
+                password: string;
+            };
         };
         "sign-up": {
             result: {
-                user_id: string;
-                created_at: string;
-            } | null;
-            payload: void;
+                user_id: number;
+                username: string;
+                created_at: number;
+            };
+            payload: {
+                username: string;
+                password: string;
+            };
         };
         "create-todo": {
             result: {
@@ -150,8 +155,8 @@ class Mutations<CSchema extends ClientSchema = Schema> {
    * @returns Promise<ProcedureResult<CSchema, "query", "sign-in">>
    * @throws {ProcedureCallError} if the procedure call fails
    */
-  async signIn(opts?: CallOpts<CSchema, "mutation", "sign-in">): Promise<ProcedureResult<CSchema, "mutation", "sign-in">> {
-    return await this.client.call("mutation", { ...opts, name: "sign-in", payload: undefined });
+  async signIn(payload: PayloadOf<CSchema, "mutation", "sign-in">, opts?: CallOpts<CSchema, "mutation", "sign-in">): Promise<ProcedureResult<CSchema, "mutation", "sign-in">> {
+    return await this.client.call("mutation", { ...opts, name: "sign-in", payload: payload });
   }
 
   /**
@@ -160,8 +165,8 @@ class Mutations<CSchema extends ClientSchema = Schema> {
    * @returns Promise<ProcedureResult<CSchema, "query", "sign-up">>
    * @throws {ProcedureCallError} if the procedure call fails
    */
-  async signUp(opts?: CallOpts<CSchema, "mutation", "sign-up">): Promise<ProcedureResult<CSchema, "mutation", "sign-up">> {
-    return await this.client.call("mutation", { ...opts, name: "sign-up", payload: undefined });
+  async signUp(payload: PayloadOf<CSchema, "mutation", "sign-up">, opts?: CallOpts<CSchema, "mutation", "sign-up">): Promise<ProcedureResult<CSchema, "mutation", "sign-up">> {
+    return await this.client.call("mutation", { ...opts, name: "sign-up", payload: payload });
   }
 
   /**
@@ -232,6 +237,23 @@ class Client<CSchema extends ClientSchema = Schema> {
 
       const response = await this.clientFn(url, requestOpts);
       if (!response.ok) {
+        // If the response has a JSON body, try to parse it and get the error message since it is likely a robin error
+        try {
+          const data = (await response.json()) as ServerResponse<ResultOf<CSchema, PType, PName>>;
+
+          if(!data) {
+            // Proceed to the unhappy throw path
+            throw new Error("No data returned from server");
+          }
+
+          // `ok` will most definitely be false here, but we still check it here as a guard if using the Union result type
+          if(!data.ok) {
+            return { ok: false, error: data?.error };
+          }
+        } catch (e) {
+          // Ignore any errors here
+        }
+
         throw new ProcedureCallError(`Failed to call procedure \`${String(opts.name)}\` with status code ${response.status}`, String(opts.name));
       }
 
@@ -246,8 +268,8 @@ class Client<CSchema extends ClientSchema = Schema> {
         throw e;
       }
 
-      const message = Object.prototype.hasOwnProperty.call(e, "message") ? e.message : "An unknown error occurred";
-      throw new ProcedureCallError(message, String(opts.name), e);
+      const message = Object.prototype.hasOwnProperty.call(e, "message") ? (e as any).message : "An unknown error occurred";
+      throw new ProcedureCallError(message, String(opts.name), e as Error);
     }
   }
 

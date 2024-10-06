@@ -5,8 +5,9 @@ import (
 	"log"
 
 	"todo/handler"
-	"todo/pkg/middleware"
-	"todo/pkg/utils"
+	"todo/repository"
+
+	apperrors "todo/pkg/errors"
 
 	"go.etcd.io/bbolt"
 	"go.trulyao.dev/robin"
@@ -18,8 +19,24 @@ func initDB() *bbolt.DB {
 	db, err := bbolt.Open("todos.db", 0o600, nil)
 	if err != nil {
 		log.Fatalf("Failed to open BoltDB: %s", err)
-		return nil
 	}
+
+	// Create buckets
+	err = db.Update(func(tx *bbolt.Tx) error {
+		if _, err = tx.CreateBucketIfNotExists([]byte("users")); err != nil {
+			return err
+		}
+
+		if _, err = tx.CreateBucketIfNotExists([]byte("todos")); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("Failed to create buckets: %s", err)
+	}
+
 	return db
 }
 
@@ -30,23 +47,24 @@ func main() {
 			GenerateBindings: true,
 		},
 		EnableDebugMode: false,
-		ErrorHandler:    utils.ErrorHandler,
+		ErrorHandler:    apperrors.ErrorHandler,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create a new Robin instance: %s", err)
 	}
 
 	db := initDB()
-	h := handler.New(db)
+	repo := repository.New(db)
+	h := handler.New(repo)
 
 	i, err := r.
 		// Queries
-		Add(q("whoami", h.Me, middleware.Cors)).
-		Add(q("list-todos", h.List, middleware.Cors)).
+		Add(q("whoami", h.Me, h.RequireAuth)).
+		Add(q("list-todos", h.List, h.RequireAuth)).
 		// Mutations
-		Add(m("sign-in", h.SignIn, middleware.Cors)).
-		Add(m("sign-up", h.SignUp, middleware.Cors)).
-		Add(m("create-todo", h.Create, middleware.Cors)).
+		Add(m("sign-in", h.SignIn)).
+		Add(m("sign-up", h.SignUp)).
+		Add(m("create-todo", h.Create, h.RequireAuth)).
 		Build()
 	if err != nil {
 		log.Fatalf("Failed to build Robin instance: %s", err)
