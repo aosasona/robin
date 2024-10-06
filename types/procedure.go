@@ -41,7 +41,15 @@ type Procedure interface {
 
 	// Validate the procedure
 	Validate() error
+
+	// Middleware to be executed before the procedure is called
+	MiddlewareFns() []Middleware
+
+	// Set the middleware functions for the procedure
+	WithMiddleware(...Middleware) Procedure
 }
+
+type Middleware func(*Context) error
 
 // No-op type to represent a procedure that doesn't return any response or take any payload
 type (

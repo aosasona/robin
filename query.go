@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"go.trulyao.dev/robin/internal/guarded"
+	"go.trulyao.dev/robin/types"
 )
 
 type (
@@ -23,6 +24,9 @@ type (
 		// A placeholder for the return type of the query
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
 		out ReturnType
+
+		// Middleware functions to be executed before the mutation is called
+		middlewareFns []types.Middleware
 
 		// Whether the query expects a payload or not
 		expectsPayload bool
@@ -86,6 +90,17 @@ func (q *query[_, _]) Validate() error {
 	}
 
 	return nil
+}
+
+// MiddlewareFns returns the middleware functions to be executed before the query is called
+func (q *query[_, _]) MiddlewareFns() []types.Middleware {
+	return q.middlewareFns
+}
+
+// Add the middleware functions for the query
+func (q *query[_, _]) WithMiddleware(fns ...types.Middleware) Procedure {
+	q.middlewareFns = append(q.middlewareFns, fns...)
+	return q
 }
 
 // Creates a new query with the given name and handler function

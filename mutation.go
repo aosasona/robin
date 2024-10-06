@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"go.trulyao.dev/robin/internal/guarded"
+	"go.trulyao.dev/robin/types"
 )
 
 type (
@@ -23,6 +24,9 @@ type (
 		// A placeholder for the return type of the mutation
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
 		out ReturnType
+
+		// Middleware functions to be executed before the mutation is called
+		middlewareFns []types.Middleware
 
 		// Whether the mutation expects a payload or not
 		expectsPayload bool
@@ -86,6 +90,17 @@ func (m *mutation[_, _]) Validate() error {
 	}
 
 	return nil
+}
+
+// MiddlewareFns returns the middleware functions that should be executed before the mutation is called
+func (m *mutation[_, _]) MiddlewareFns() []types.Middleware {
+	return m.middlewareFns
+}
+
+// WithMiddleware sets the middleware functions for the mutation
+func (m *mutation[_, _]) WithMiddleware(fns ...types.Middleware) Procedure {
+	m.middlewareFns = append(m.middlewareFns, fns...)
+	return m
 }
 
 // Creates a new mutation with the given name and handler function

@@ -13,6 +13,13 @@ import (
 
 // handleProcedureCall handles a procedure call, calling the procedure and returning the result from the handler
 func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
+	// Call the procedure middleware functions before we proceed to to any work
+	for _, middleware := range procedure.MiddlewareFns() {
+		if err := middleware(ctx); err != nil {
+			return err
+		}
+	}
+
 	var (
 		data = struct {
 			Payload any `json:"d"`
