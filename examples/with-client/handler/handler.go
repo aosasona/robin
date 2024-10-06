@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"fmt"
-
 	"go.etcd.io/bbolt"
 	"go.trulyao.dev/robin"
 )
@@ -19,6 +17,7 @@ func New(db *bbolt.DB) *handler {
 	return &handler{db}
 }
 
+// TODO: update stubs
 func (h *handler) Ping(ctx *robin.Context, data string) (string, error) {
 	return "Hey", nil
 }
@@ -28,6 +27,5 @@ func (h *handler) List(ctx *robin.Context, _ robin.Void) ([]string, error) {
 }
 
 func (h *handler) Create(ctx *robin.Context, input CreateInput) (CreateInput, error) {
-	fmt.Println("Creating todo with title:", input.Title)
 	return input, nil
 }
