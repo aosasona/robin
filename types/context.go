@@ -15,8 +15,8 @@ type State struct {
 	mu       sync.RWMutex
 }
 
-func NewState() *State {
-	return &State{m: make(map[string]any), useMutex: true}
+func NewState() State {
+	return State{m: make(map[string]any), useMutex: true}
 }
 
 // Set sets a value in the state container
@@ -46,22 +46,60 @@ func (s *State) UseMutex(useMutex bool) {
 
 type Context struct {
 	// The raw incoming request
-	Request *http.Request
+	request *http.Request
 
 	// The raw response writer
-	Response http.ResponseWriter
+	response *http.ResponseWriter
 
 	// The name of the procedure
-	ProcedureName string
+	procedureName string
 
 	// The type of the procedure
-	ProcedureType ProcedureType
+	procedureType ProcedureType
 
 	// User-defined state - this can be used to store any data that needs to be shared across procedures
 	// For example, database connections, etc.
 	//
 	// NOTE: this is shared across all procedures and requests, the state container has a mutex lock by default to ensure thread safety, you can disable this by calling `DisableStateMutex`
 	State State
+}
+
+func NewContext(req *http.Request, res *http.ResponseWriter) *Context {
+	return &Context{
+		request:  req,
+		response: res,
+		State:    NewState(),
+	}
+}
+
+// Request returns the underlying request
+func (c *Context) Request() *http.Request {
+	return c.request
+}
+
+// Response returns the underlying response writer
+func (c *Context) Response() http.ResponseWriter {
+	return *c.response
+}
+
+// ProcedureName returns the name of the procedure
+func (c *Context) ProcedureName() string {
+	return c.procedureName
+}
+
+// ProcedureType returns the type of the procedure
+func (c *Context) ProcedureType() ProcedureType {
+	return c.procedureType
+}
+
+// SetProcedureName sets the name of the procedure
+func (c *Context) SetProcedureName(name string) {
+	c.procedureName = name
+}
+
+// SetProcedureType sets the type of the procedure
+func (c *Context) SetProcedureType(procedureType ProcedureType) {
+	c.procedureType = procedureType
 }
 
 // Set sets a value in the state container
@@ -82,21 +120,21 @@ func (c *Context) DisableStateMutex() { c.State.UseMutex(false) }
 
 // Header returns the value of the specified header
 func (c *Context) Header(key string) string {
-	return c.Request.Header.Get(key)
+	return c.request.Header.Get(key)
 }
 
 // SetHeader sets the value of the specified header
 func (c *Context) SetHeader(key, value string) {
-	c.Response.Header().Set(key, value)
+	c.Response().Header().Set(key, value)
 }
 
 // Query returns the value of the specified query parameter
 func (c *Context) Query(key string) string {
-	return c.Request.URL.Query().Get(key)
+	return c.request.URL.Query().Get(key)
 }
 
 // GetBody returns the body of the request as a byte slice
 func (c *Context) GetBody() []byte {
-	body, _ := io.ReadAll(c.Request.Body)
+	body, _ := io.ReadAll(c.request.Body)
 	return body
 }

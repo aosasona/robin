@@ -23,6 +23,7 @@ type (
 	ProcedureType = types.ProcedureType
 	Procedure     = types.Procedure
 	Context       = types.Context
+	Middleware    = types.Middleware
 )
 
 // Re-exported constants
@@ -164,23 +165,26 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var err error
 
-	ctx := &Context{Request: req, Response: w}
-	ctx.ProcedureType, ctx.ProcedureName, err = r.getProcedureMetaFromURL(req.URL)
+	ctx := types.NewContext(req, &w)
+	procedureType, procedureName, err := r.getProcedureMetaFromURL(req.URL)
 	if err != nil {
 		r.sendError(w, err)
 		return
 	}
 
-	procedure, found := r.findProcedure(ctx.ProcedureName, ctx.ProcedureType)
+	ctx.SetProcedureName(procedureName)
+	ctx.SetProcedureType(procedureType)
+
+	procedure, found := r.findProcedure(ctx.ProcedureName(), ctx.ProcedureType())
 	if !found {
 		r.sendError(
 			w,
-			r.makeMissingProcedureError(ctx.ProcedureName, ctx.ProcedureType),
+			r.makeMissingProcedureError(ctx.ProcedureName(), ctx.ProcedureType()),
 		)
 		return
 	}
 
-	switch ProcedureType(ctx.ProcedureType) {
+	switch ProcedureType(ctx.ProcedureType()) {
 	case ProcedureTypeQuery, ProcedureTypeMutation:
 		err := r.handleProcedureCall(ctx, *procedure)
 		if err != nil {
@@ -192,8 +196,9 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 		r.sendError(
 			w,
 			types.RobinError{
-				Reason: "Invalid procedure type, expect one of 'query' or 'mutation', got " + string(
-					ctx.ProcedureType,
+				Reason: fmt.Sprintf(
+					"Invalid procedure type, expect one of 'query' or 'mutation', got %s",
+					string(ctx.ProcedureType()),
 				),
 			},
 		)

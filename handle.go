@@ -33,7 +33,7 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 
 	// Decode the request body into the "typeless" payload field of the data struct
 	if procedure.ExpectsPayload() {
-		if err := json.NewDecoder(ctx.Request.Body).Decode(&data); err != nil {
+		if err := json.NewDecoder(ctx.Request().Body).Decode(&data); err != nil {
 			if r.debug && err.Error() != "EOF" {
 				slog.Error("Failed to decode request body", slog.String("error", err.Error()))
 			}
@@ -67,9 +67,9 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 		return RobinError{Reason: "Failed to marshal response", OriginalError: err}
 	}
 
-	ctx.Response.Header().Add("content-type", "application/json")
-	ctx.Response.WriteHeader(200)
-	_, _ = ctx.Response.Write(strResponse)
+	ctx.Response().Header().Add("content-type", "application/json")
+	ctx.Response().WriteHeader(200)
+	_, _ = ctx.Response().Write(strResponse)
 
 	return nil
 }
