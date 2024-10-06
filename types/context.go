@@ -60,7 +60,7 @@ type Context struct {
 	// User-defined state - this can be used to store any data that needs to be shared across procedures
 	// For example, database connections, etc.
 	//
-	// NOTE: this is shared across all procedures and requests, the state container has a mutex lock by default to ensure thread safety, you can disable this by calling `DisableStateMutex`
+	// NOTE: this is shared across all a functions in a single request
 	State State
 }
 
