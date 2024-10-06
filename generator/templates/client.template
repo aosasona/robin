@@ -148,6 +148,23 @@ class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> 
 
       const response = await this.clientFn(url, requestOpts);
       if (!response.ok) {
+        // If the response has a JSON body, try to parse it and get the error message since it is likely a robin error
+        try {
+          const data = (await response.json()) as ServerResponse<ResultOf<CSchema, PType, PName>>;
+
+          if(!data) {
+            // Proceed to the unhappy throw path
+            throw new Error("No data returned from server");
+          }
+
+          // `ok` will most definitely be false here, but we still check it here as a guard if using the Union result type
+          if(!data.ok) {
+            return { ok: false, error: data?.error };
+          }
+        } catch (e) {
+          // Ignore any errors here
+        }
+
         throw new ProcedureCallError(`Failed to call procedure \`${String(opts.name)}\` with status code ${response.status}`, String(opts.name));
       }
 
@@ -162,8 +179,8 @@ class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> 
         throw e;
       }
 
-      const message = Object.prototype.hasOwnProperty.call(e, "message") ? e.message : "An unknown error occurred";
-      throw new ProcedureCallError(message, String(opts.name), e);
+      const message = Object.prototype.hasOwnProperty.call(e, "message") ? (e as any).message : "An unknown error occurred";
+      throw new ProcedureCallError(message, String(opts.name), e as Error);
     }
   }
 
