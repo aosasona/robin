@@ -54,6 +54,9 @@ type (
 
 		// Whether to use the union result type or not - when enabled, the result type will be a uniion of the Ok and Error types which would disallow access to any of the fields without checking the `ok` field first
 		UseUnionResult bool
+
+		// Whether to throw a ProcedureCallError when a procedure call fails for any reason (e.g. invalid payload, user-defined error, etc.) instead of returning an error result
+		ThrowOnError bool
 	}
 
 	MethodTemplateOpts struct {
@@ -72,6 +75,9 @@ type (
 
 		// Whether to use the union result type or not - when enabled, the result type will be a uniion of the Ok and Error types which would disallow access to any of the fields without checking the `ok` field first
 		UseUnionResult bool
+
+		// Whether to throw a ProcedureCallError when a procedure call fails for any reason (e.g. invalid payload, user-defined error, etc.) instead of returning an error result
+		ThrowOnError bool
 	}
 
 	GeneratedMethods struct {
@@ -110,6 +116,7 @@ func (g *generator) GenerateBindings(opts GenerateBindingsOpts) (string, error) 
 		MutationMethods: strings.Join(methods.Mutations, "\n"),
 		QueryMethods:    strings.Join(methods.Queries, "\n"),
 		UseUnionResult:  opts.UseUnionResult,
+		ThrowOnError:    opts.ThrowOnError,
 	}); err != nil {
 		return "", fmt.Errorf("failed to execute bindings template: %w", err)
 	}
