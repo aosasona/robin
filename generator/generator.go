@@ -54,6 +54,9 @@ type (
 
 		// Whether to use the union result type or not - when enabled, the result type will be a uniion of the Ok and Error types which would disallow access to any of the fields without checking the `ok` field first
 		UseUnionResult bool
+
+		// Whether to throw a ProcedureCallError when a procedure call fails for any reason (e.g. invalid payload, user-defined error, etc.) instead of returning an error result
+		ThrowOnError bool
 	}
 
 	MethodTemplateOpts struct {
@@ -61,6 +64,11 @@ type (
 		Name         string
 		Type         string
 		HasPayload   bool
+		ThrowOnError bool
+	}
+
+	GenerateMethodsOpts struct {
+		ThrowOnError bool
 	}
 
 	GenerateBindingsOpts struct {
@@ -72,6 +80,9 @@ type (
 
 		// Whether to use the union result type or not - when enabled, the result type will be a uniion of the Ok and Error types which would disallow access to any of the fields without checking the `ok` field first
 		UseUnionResult bool
+
+		// Whether to throw a ProcedureCallError when a procedure call fails for any reason (e.g. invalid payload, user-defined error, etc.) instead of returning an error result
+		ThrowOnError bool
 	}
 
 	GeneratedMethods struct {
@@ -98,7 +109,7 @@ func (g *generator) GenerateBindings(opts GenerateBindingsOpts) (string, error) 
 		return "", fmt.Errorf("failed to parse bindings template: %w", err)
 	}
 
-	methods, err := g.GenerateMethods()
+	methods, err := g.GenerateMethods(GenerateMethodsOpts{ThrowOnError: opts.ThrowOnError})
 	if err != nil {
 		return "", fmt.Errorf("failed to generate methods: %w", err)
 	}
@@ -110,6 +121,7 @@ func (g *generator) GenerateBindings(opts GenerateBindingsOpts) (string, error) 
 		MutationMethods: strings.Join(methods.Mutations, "\n"),
 		QueryMethods:    strings.Join(methods.Queries, "\n"),
 		UseUnionResult:  opts.UseUnionResult,
+		ThrowOnError:    opts.ThrowOnError,
 	}); err != nil {
 		return "", fmt.Errorf("failed to execute bindings template: %w", err)
 	}
@@ -117,7 +129,7 @@ func (g *generator) GenerateBindings(opts GenerateBindingsOpts) (string, error) 
 	return builder.String(), nil
 }
 
-func (g *generator) GenerateMethods() (*GeneratedMethods, error) {
+func (g *generator) GenerateMethods(opts GenerateMethodsOpts) (*GeneratedMethods, error) {
 	var mutations, queries []string
 
 	for _, procedure := range g.procedures {
@@ -126,8 +138,8 @@ func (g *generator) GenerateMethods() (*GeneratedMethods, error) {
    * @procedure {{ .OriginalName }}
    *
    * @returns Promise<ProcedureResult<CSchema, "query", {{ printf "%q" .OriginalName }}>>
-   * @throws {ProcedureCallError} if the procedure call fails
-   */
+   {{if .ThrowOnError}}* @throws {ProcedureCallError} if the procedure call fails
+   {{end}}*/
   async {{.Name}}({{ if .HasPayload }}payload: PayloadOf<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>, {{end}}opts?: CallOpts<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>): Promise<ProcedureResult<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>> {
     return await this.client.call({{ printf "%q" .Type }}, { ...opts, name: {{ printf "%q" .OriginalName }}, payload: {{ if .HasPayload }}payload{{else}}undefined{{end}} });
   }`
@@ -147,6 +159,7 @@ func (g *generator) GenerateMethods() (*GeneratedMethods, error) {
 			Name:         NormalizeProcedureName(procedure.Name()),
 			Type:         procedureType,
 			HasPayload:   reflect.TypeOf(procedure.PayloadInterface()).Name() != "_RobinVoid",
+			ThrowOnError: opts.ThrowOnError,
 		}
 
 		method, err := template.New("method").Parse(methodTemplate)

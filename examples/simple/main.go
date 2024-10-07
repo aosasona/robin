@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -15,7 +16,12 @@ type Todo struct {
 
 func main() {
 	r, err := robin.New(robin.Options{
-		CodegenOptions: robin.CodegenOptions{Path: ".", GenerateBindings: true},
+		CodegenOptions: robin.CodegenOptions{
+			Path:             ".",
+			GenerateBindings: true,
+			ThrowOnError:     true,
+			UseUnionResult:   true,
+		},
 	})
 	if err != nil {
 		log.Fatalf("Failed to create a new Robin instance: %s", err)
@@ -23,6 +29,7 @@ func main() {
 
 	i, err := r.
 		Add(robin.Query("ping", ping)).
+		Add(robin.Query("fail", fail)).
 		Add(robin.Query("todos.list", listTodos)).
 		Add(robin.Mutation("todos.create", createTodo)).
 		Build()
@@ -34,7 +41,7 @@ func main() {
 		log.Fatalf("Failed to export client: %s", err)
 	}
 
-	if err := i.Serve(); err != nil {
+	if err := i.Serve(robin.ServeOptions{Port: 8060, Route: "/"}); err != nil {
 		log.Fatalf("Failed to serve Robin instance: %s", err)
 		return
 	}
@@ -54,4 +61,9 @@ func listTodos(ctx *robin.Context, _ robin.Void) ([]Todo, error) {
 func createTodo(ctx *robin.Context, todo Todo) (Todo, error) {
 	todo.CreatedAt = time.Now()
 	return todo, nil
+}
+
+// Yes, you can just return normal errors!
+func fail(ctx *robin.Context, _ robin.Void) (robin.Void, error) {
+	return robin.Void{}, errors.New("This is a procedure error!")
 }

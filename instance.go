@@ -160,6 +160,7 @@ func (i *Instance) Export(optPath ...string) error {
 			IncludeSchema:  !i.codegenOptions.GenerateSchema,
 			Schema:         schemaString,
 			UseUnionResult: i.codegenOptions.UseUnionResult,
+			ThrowOnError:   i.codegenOptions.ThrowOnError,
 		})
 		if err != nil {
 			return err

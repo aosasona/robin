@@ -43,11 +43,7 @@ export type ResultOf<CSchema extends ClientSchema, PType extends ProcedureType, 
   PType
 >[PName]["result"];
 
-export type ProcedureResult<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {
-  ok: boolean;
-  data?: ResultOf<CSchema, PType, PName>;
-  error?: unknown;
-}
+export type ProcedureResult<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = ResultOf<CSchema, PType, PName>
 
 export type RawCallOpts<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {
   name: PName;
@@ -66,6 +62,10 @@ export type Schema = {
     queries: {
         "ping": {
             result: string;
+            payload: void;
+        };
+        "fail": {
+            result: void;
             payload: void;
         };
         "todos.list": {
@@ -119,6 +119,16 @@ class Queries<CSchema extends ClientSchema = Schema> {
    */
   async ping(opts?: CallOpts<CSchema, "query", "ping">): Promise<ProcedureResult<CSchema, "query", "ping">> {
     return await this.client.call("query", { ...opts, name: "ping", payload: undefined });
+  }
+
+  /**
+   * @procedure fail
+   *
+   * @returns Promise<ProcedureResult<CSchema, "query", "fail">>
+   * @throws {ProcedureCallError} if the procedure call fails
+   */
+  async fail(opts?: CallOpts<CSchema, "query", "fail">): Promise<ProcedureResult<CSchema, "query", "fail">> {
+    return await this.client.call("query", { ...opts, name: "fail", payload: undefined });
   }
 
   /**
@@ -202,23 +212,35 @@ class Client<CSchema extends ClientSchema = Schema> {
       };
 
       const response = await this.clientFn(url, requestOpts);
+
       if (!response.ok) {
-        throw new ProcedureCallError(`Failed to call procedure \`${String(opts.name)}\` with status code ${response.status}`, String(opts.name));
+        let err: unknown = `Failed to call procedure \`${String(opts.name)}\` with status code ${response.status}`;
+
+        // Attempt to parse the response body as JSON to extract the error message
+        try {
+          const data = (await response.json()) as ServerResponse<ResultOf<CSchema, PType, PName>>;
+          if(!!data && data?.error) {
+            err = data?.error;
+          }
+        } catch(_e: unknown) {
+          /* Ignore errors here and just throw anyway */
+        }
+        throw new ProcedureCallError(err, String(opts.name));
       }
 
       const data = (await response.json()) as ServerResponse<ResultOf<CSchema, PType, PName>>;
       if (!data.ok) {
-        return { ok: false, error: data?.error || "An unknown error occurred" };
+        throw new ProcedureCallError(data?.error || "An unknown error occurred", String(opts.name)); 
       }
 
-      return { ok: true, data: data?.data as ResultOf<CSchema, PType, PName> };
-    } catch (e) {
+      return data?.data as ResultOf<CSchema, PType, PName>;
+    } catch (e: unknown) {
       if (e instanceof ProcedureCallError) {
         throw e;
       }
 
-      const message = Object.prototype.hasOwnProperty.call(e, "message") ? e.message : "An unknown error occurred";
-      throw new ProcedureCallError(message, String(opts.name), e);
+      const message = Object.prototype.hasOwnProperty.call(e, "message") ? (e as {message: unknown}).message : "An unknown error occurred";
+      throw new ProcedureCallError(message, String(opts.name), e as Error);
     }
   }
 
@@ -275,7 +297,7 @@ export class ProcedureCallError extends Error {
   // The previous error that caused this error, if any
   public previousError: Error | null;
 
-  public constructor(message: any, procedureName: string, originalError: Error | null = null) {
+  public constructor(message: unknown, procedureName: string, originalError: Error | null = null) {
     super(typeof message === "string" ? message : "A procedure call error occurred, see the `details` property for more information");
     this.name = "ProcedureCallError";
     this.details = message;

@@ -1,16 +1,19 @@
 import Client from "./bindings.ts";
 
 const client = Client.new({
-	endpoint: "http://localhost:8081/_robin",
+	endpoint: "http://localhost:8060",
 });
 
 await client.queries.ping();
 
-const { data: todos } = await client.queries.todosList();
-const { data: newTodo } = await client.mutations.todosCreate({
+const todos = await client.queries.todosList();
+const newTodo = await client.mutations.todosCreate({
 	title: "Buy milk",
 	completed: false,
 });
 
 console.log("todos -> ", todos);
 console.log("newTodo -> ", newTodo);
+
+// This should throw since the generated client is set to throw on errors
+await client.queries.fail();
