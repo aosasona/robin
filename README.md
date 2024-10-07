@@ -132,7 +132,7 @@ newTodo ->  {
 }
 ```
 
-You can find this example presented here in the [`examples/simple`](./examples/simple) folder
+You can find this example presented here in the [`examples/simple`](./examples/simple) folder or a more application-like example [here](https://github.com/aosasona/robin-todo) using Solid.js, [BoltDB](https://github.com/etcd-io/bbolt) and Robin.
 
 # Contributing
 

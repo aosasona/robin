@@ -13,16 +13,6 @@ sources = [
   "./examples/query-mutations/main.go",
 ]
 
-[tasks."example:client"]
-description = "Run the example in with-client"
-run = "go run ."
-sources = [
-  "generator/**/*.go",
-  "internal/**/*.go",
-  "examples/with-client/**/*.go",
-]
-dir = "./examples/with-client"
-
 [tasks."example:simple"]
 description = "Run the example in simple"
 run = "go run ."
