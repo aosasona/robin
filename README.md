@@ -28,6 +28,7 @@ Defining your procedures in the Go application/server is as simple as creating f
 package main
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -42,7 +43,12 @@ type Todo struct {
 
 func main() {
 	r, err := robin.New(robin.Options{
-		CodegenOptions: robin.CodegenOptions{Path: ".", GenerateBindings: true},
+		CodegenOptions: robin.CodegenOptions{
+			Path:             ".",
+			GenerateBindings: true,
+			ThrowOnError:     true,
+			UseUnionResult:   true,
+		},
 	})
 	if err != nil {
 		log.Fatalf("Failed to create a new Robin instance: %s", err)
@@ -50,6 +56,7 @@ func main() {
 
 	i, err := r.
 		Add(robin.Query("ping", ping)).
+		Add(robin.Query("fail", fail)).
 		Add(robin.Query("todos.list", listTodos)).
 		Add(robin.Mutation("todos.create", createTodo)).
 		Build()
@@ -61,7 +68,7 @@ func main() {
 		log.Fatalf("Failed to export client: %s", err)
 	}
 
-	if err := i.Serve(); err != nil {
+	if err := i.Serve(robin.ServeOptions{Port: 8060, Route: "/"}); err != nil {
 		log.Fatalf("Failed to serve Robin instance: %s", err)
 		return
 	}
@@ -82,6 +89,11 @@ func createTodo(ctx *robin.Context, todo Todo) (Todo, error) {
 	todo.CreatedAt = time.Now()
 	return todo, nil
 }
+
+// Yes, you can just return normal errors!
+func fail(ctx *robin.Context, _ robin.Void) (robin.Void, error) {
+	return robin.Void{}, errors.New("This is a procedure error!")
+}
 ```
 
 ## Client (TypeScript)
@@ -92,19 +104,22 @@ This is how you would use the generated client code in your TypeScript project.
 import Client from "./bindings.ts";
 
 const client = Client.new({
-	endpoint: "http://localhost:8081/_robin",
+	endpoint: "http://localhost:8060",
 });
 
 await client.queries.ping();
 
-const { data: todos } = await client.queries.todosList();
-const { data: newTodo } = await client.mutations.todosCreate({
+const todos = await client.queries.todosList();
+const newTodo = await client.mutations.todosCreate({
 	title: "Buy milk",
 	completed: false,
 });
 
 console.log("todos -> ", todos);
 console.log("newTodo -> ", newTodo);
+
+// This should throw since the generated client is set to throw on errors
+await client.queries.fail();
 ```
 
 Running the usage script will yield this:
@@ -118,17 +133,55 @@ todos ->  [
   {
     title: "Hello world!",
     completed: false,
-    created_at: "2024-10-06T01:03:13.168231+01:00",
+    created_at: "2024-10-07T15:30:10.785946+01:00",
   }, {
     title: "Hello world again!",
     completed: true,
-    created_at: "2024-10-06T01:03:13.168231+01:00",
+    created_at: "2024-10-07T15:30:10.785946+01:00",
   }
 ]
 newTodo ->  {
   title: "Buy milk",
   completed: false,
-  created_at: "2024-10-06T01:03:13.168566+01:00",
+  created_at: "2024-10-07T15:30:10.786238+01:00",
+}
+
+ProcedureCallError: This is a procedure error!
+      at new ProcedureCallError (/user/robin/examples/simple/bindings.ts:301:5)
+      at /user/robin/examples/simple/bindings.ts:228:15
+```
+
+> [!NOTE]
+> This example is configured to throw on failure as you would prefer to if you are using it with something like React Query or Solid.js's `createResource`, you can disable this and get all responses back as the result type which can then be destructured to check or access the error or data.
+
+When `ThrowOnError` is disabled, you get back a result type which can then further be narrowed to force error checks by enabling the `UseUnionResult` option which will only allow access to either the data or the error field depending on a guarded check of the `ok` field.
+
+```text
+todos ->  {
+  ok: true,
+  data: [
+    {
+      title: "Hello world!",
+      completed: false,
+      created_at: "2024-10-07T15:34:39.081796+01:00",
+    }, {
+      title: "Hello world again!",
+      completed: true,
+      created_at: "2024-10-07T15:34:39.081796+01:00",
+    }
+  ],
+}
+newTodo ->  {
+  ok: true,
+  data: {
+    title: "Buy milk",
+    completed: false,
+    created_at: "2024-10-07T15:34:39.082366+01:00",
+  },
+}
+t ->  {
+  ok: false,
+  error: "This is a procedure error!",
 }
 ```
 
