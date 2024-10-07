@@ -43,13 +43,13 @@ export type ResultOf<CSchema extends ClientSchema, PType extends ProcedureType, 
   PType
 >[PName]["result"];
 
-export type ProcedureResult<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {{if .UseUnionResult}}
+export type ProcedureResult<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {{if .ThrowOnError}}ResultOf<CSchema, PType, PName>{{else}}{{if .UseUnionResult}}
   | { ok: false; error: unknown; }
   | { ok: true; data: ResultOf<CSchema, PType, PName> };{{else}}{
   ok: boolean;
   data?: ResultOf<CSchema, PType, PName>;
   error?: unknown;
-}{{end}}
+}{{end}}{{end}}
 
 export type RawCallOpts<CSchema extends ClientSchema, PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>> = {
   name: PName;
@@ -128,8 +128,8 @@ class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> 
    * @returns Promise<ProcedureResult<CSchema, PType, PName>>
    *
    * @description Manually call a robin procedure; this is a low-level function that should not be used directly unless absolutely necessary
-   * @throws {ProcedureCallError} if the procedure call fails
-   */
+   {{if .ThrowOnError}}* @throws {ProcedureCallError} if the procedure call fails
+   {{end}}*/
   async call<PType extends ProcedureType, PName extends keyof SchemaBasedOnType<CSchema, PType>>(
     type: PType,
     opts: RawCallOpts<CSchema, PType, PName>
@@ -147,40 +147,35 @@ class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> 
       };
 
       const response = await this.clientFn(url, requestOpts);
+
       if (!response.ok) {
-        // If the response has a JSON body, try to parse it and get the error message since it is likely a robin error
+        let err: unknown = `Failed to call procedure \`${String(opts.name)}\` with status code ${response.status}`;
+
+        // Attempt to parse the response body as JSON to extract the error message
         try {
           const data = (await response.json()) as ServerResponse<ResultOf<CSchema, PType, PName>>;
-
-          if(!data) {
-            // Proceed to the unhappy throw path
-            throw new Error("No data returned from server");
+          if(!!data && data?.error) {
+            err = data?.error;
           }
-
-          // `ok` will most definitely be false here, but we still check it here as a guard if using the Union result type
-          if(!data.ok) {
-            return { ok: false, error: data?.error };
-          }
-        } catch (e) {
-          // Ignore any errors here
+        } catch(_e: unknown) {
+          /* Ignore errors here and just throw anyway */
         }
-
-        throw new ProcedureCallError(`Failed to call procedure \`${String(opts.name)}\` with status code ${response.status}`, String(opts.name));
+        {{if .ThrowOnError}}throw new ProcedureCallError(err, String(opts.name));{{else}}return { ok: false, error: err };{{end}}
       }
 
       const data = (await response.json()) as ServerResponse<ResultOf<CSchema, PType, PName>>;
       if (!data.ok) {
-        return { ok: false, error: data?.error || "An unknown error occurred" };
+        {{if .ThrowOnError}}throw new ProcedureCallError(data?.error || "An unknown error occurred", String(opts.name)); {{else}}return { ok: false, error: data?.error || "An unknown error occurred" }; {{end}}
       }
 
-      return { ok: true, data: data?.data as ResultOf<CSchema, PType, PName> };
-    } catch (e) {
-      if (e instanceof ProcedureCallError) {
+      {{if .ThrowOnError}}return data?.data as ResultOf<CSchema, PType, PName>;{{else}}return { ok: true, data: data?.data as ResultOf<CSchema, PType, PName> };{{end}}
+    } catch (e: unknown) {
+      {{if .ThrowOnError}}if (e instanceof ProcedureCallError) {
         throw e;
       }
 
-      const message = Object.prototype.hasOwnProperty.call(e, "message") ? (e as any).message : "An unknown error occurred";
-      throw new ProcedureCallError(message, String(opts.name), e as Error);
+      const message = Object.prototype.hasOwnProperty.call(e, "message") ? (e as {message: unknown}).message : "An unknown error occurred";
+      throw new ProcedureCallError(message, String(opts.name), e as Error);{{else}}return { ok: false, error: e };{{end}}
     }
   }
 
@@ -191,8 +186,8 @@ class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> 
    * @returns Promise<ProcedureResult<CSchema, "query", PName>>
    *
    * @description Manually call a robin query procedure
-   * @throws {ProcedureCallError} if the procedure call fails
-   */
+   {{if .ThrowOnError}}* @throws {ProcedureCallError} if the procedure call fails
+   {{end}}*/
   async query<PName extends keyof SchemaBasedOnType<CSchema, "query">>(
     name: PName,
     payload: PayloadOf<CSchema, "query", PName>,
@@ -209,8 +204,8 @@ class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> 
    * @returns Promise<ProcedureResult<CSchema, "mutation", PName>>
    *
    * @description Manually call a robin mutation procedure
-   * @throws {ProcedureCallError} if the procedure call fails
-   */
+   {{if .ThrowOnError}}* @throws {ProcedureCallError} if the procedure call fails
+   {{end}}*/
   async mutate<PName extends keyof SchemaBasedOnType<CSchema, "mutation">>(
     name: PName,
     payload: PayloadOf<CSchema, "mutation", PName>,
@@ -237,7 +232,7 @@ export class ProcedureCallError extends Error {
   // The previous error that caused this error, if any
   public previousError: Error | null;
 
-  public constructor(message: any, procedureName: string, originalError: Error | null = null) {
+  public constructor(message: unknown, procedureName: string, originalError: Error | null = null) {
     super(typeof message === "string" ? message : "A procedure call error occurred, see the `details` property for more information");
     this.name = "ProcedureCallError";
     this.details = message;
