@@ -82,6 +82,20 @@ func (c *Context) Response() http.ResponseWriter {
 	return *c.response
 }
 
+// Cookie returns the cookie with the specified key from the request and a boolean indicating whether the cookie exists
+func (c *Context) Cookie(key string) (*http.Cookie, bool) {
+	cookie, err := c.request.Cookie(key)
+	if err != nil {
+		return nil, false
+	}
+	return cookie, true
+}
+
+// SetCookie sets a cookie in the response
+func (c *Context) SetCookie(cookie *http.Cookie) {
+	http.SetCookie(*c.response, cookie)
+}
+
 // ProcedureName returns the name of the procedure
 func (c *Context) ProcedureName() string {
 	return c.procedureName
