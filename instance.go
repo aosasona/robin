@@ -77,7 +77,19 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 	}
 
 	if len(opts) > 0 {
-		i.port = opts[0].Port
+		optsPort := opts[0].Port
+		if optsPort > 65535 {
+			return errors.New("invalid port provided")
+		}
+
+		if optsPort > 0 {
+			if optsPort < 1024 {
+				slog.Warn("⚠️ Running robin on a privileged port", slog.Int("port", optsPort))
+			}
+
+			i.port = optsPort
+		}
+
 		i.route = strings.TrimSpace(strings.Trim(opts[0].Route, "/"))
 		if opts[0].CorsOptions != nil {
 			corsOpts = opts[0].CorsOptions
