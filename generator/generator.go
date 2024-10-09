@@ -139,7 +139,7 @@ func (g *generator) GenerateMethods(opts GenerateMethodsOpts) (*GeneratedMethods
    *
    * @returns Promise<ProcedureResult<CSchema, "query", {{ printf "%q" .OriginalName }}>>
    {{if .ThrowOnError}}* @throws {ProcedureCallError} if the procedure call fails
-   {{end}}*/
+   {{end}}**/
   async {{.Name}}({{ if .HasPayload }}payload: PayloadOf<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>, {{end}}opts?: CallOpts<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>): Promise<ProcedureResult<CSchema, {{ printf "%q" .Type }}, {{ printf "%q" .OriginalName }}>> {
     return await this.client.call({{ printf "%q" .Type }}, { ...opts, name: {{ printf "%q" .OriginalName }}, payload: {{ if .HasPayload }}payload{{else}}undefined{{end}} });
   }`
@@ -194,7 +194,9 @@ func (g *generator) GenerateSchema() (string, error) {
 		SetInlineObjects(true).
 		SetIncludeSemiColon(true).
 		SetPreferNullForNullable(true).
-		SetPreferUnknown(true)
+		SetPreferUnknown(true).
+		SetIndentationType(config.IndentSpace).
+		SetIndentationCount(2)
 
 	target.Generator().SetHeaderText("")
 
