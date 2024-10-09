@@ -11,60 +11,81 @@ import (
 	"go.trulyao.dev/robin/generator"
 )
 
-type Instance struct {
-	// Knobs for typescript code generation
-	codegenOptions *CodegenOptions
+type (
+	Instance struct {
+		// Knobs for typescript code generation
+		codegenOptions *CodegenOptions
 
-	// Internal pointer to the current robin instance
-	robin *Robin
+		// Internal pointer to the current robin instance
+		robin *Robin
 
-	// Port to run the server on
-	port int
+		// Port to run the server on
+		port int
 
-	// Route to run the robin handler on
-	route string
+		// Route to run the robin handler on
+		route string
+	}
+
+	CorsOptions struct {
+		// Allowed origins
+		Origins []string
+
+		// Allowed headers
+		Headers []string
+
+		// Allowed methods
+		Methods []string
+
+		// Exposed headers
+		ExposedHeaders []string
+
+		// Allow credentials
+		AllowCredentials bool
+
+		// Max age
+		MaxAge int
+
+		// Preflight headers
+		PreflightHeaders map[string]string
+	}
+
+	ServeOptions struct {
+		// Port to run the server on
+		Port int
+
+		// Route to run the robin handler on
+		Route string
+
+		// CORS options
+		CorsOptions *CorsOptions
+	}
+)
+
+func preflight(w http.ResponseWriter, opts *CorsOptions) {
+	if opts.PreflightHeaders != nil {
+		for k, v := range opts.PreflightHeaders {
+			w.Header().Set(k, v)
+		}
+
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", strings.Join(opts.Origins, ","))
+	w.Header().
+		Set("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 }
 
-type CorsOptions struct {
-	// Allowed origins
-	Origins []string
-
-	// Allowed headers
-	Headers []string
-
-	// Allowed methods
-	Methods []string
-
-	// Exposed headers
-	ExposedHeaders []string
-
-	// Allow credentials
-	AllowCredentials bool
-
-	// Max age
-	MaxAge int
-}
-
-type ServeOptions struct {
-	// Port to run the server on
-	Port int
-
-	// Route to run the robin handler on
-	Route string
-
-	// CORS options
-	CorsOptions *CorsOptions
-}
-
-func cors(w *http.ResponseWriter, opts *CorsOptions) {
-	(*w).Header().Set("Access-Control-Allow-Origin", strings.Join(opts.Origins, ","))
-	(*w).Header().Set("Access-Control-Allow-Headers", strings.Join(opts.Headers, ","))
-	(*w).Header().Set("Access-Control-Allow-Methods", strings.Join(opts.Methods, ","))
-	(*w).Header().Set("Access-Control-Expose-Headers", strings.Join(opts.ExposedHeaders, ","))
-	(*w).Header().Set("Access-Control-Allow-Credentials", fmt.Sprintf("%t", opts.AllowCredentials))
+func cors(w http.ResponseWriter, opts *CorsOptions) {
+	w.Header().Set("Access-Control-Allow-Origin", strings.Join(opts.Origins, ","))
+	w.Header().Set("Access-Control-Allow-Headers", strings.Join(opts.Headers, ","))
+	w.Header().Set("Access-Control-Allow-Methods", strings.Join(opts.Methods, ","))
+	w.Header().Set("Access-Control-Expose-Headers", strings.Join(opts.ExposedHeaders, ","))
+	w.Header().Set("Access-Control-Allow-Credentials", fmt.Sprintf("%t", opts.AllowCredentials))
 
 	if opts.MaxAge > 0 {
-		(*w).Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", opts.MaxAge))
+		w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", opts.MaxAge))
 	}
 }
 
@@ -98,14 +119,14 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /"+i.route, func(w http.ResponseWriter, r *http.Request) {
-		cors(&w, corsOpts)
+		cors(w, corsOpts)
 		i.Handler()(w, r)
 	})
 
 	// Handle CORS preflight requests
 	mux.HandleFunc("/"+i.route, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
-			cors(&w, corsOpts)
+			preflight(w, corsOpts)
 			return
 		}
 	})
