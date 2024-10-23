@@ -61,7 +61,7 @@ type (
 	}
 )
 
-func preflight(w http.ResponseWriter, opts *CorsOptions) {
+func PreflightHandler(w http.ResponseWriter, opts *CorsOptions) {
 	if opts.PreflightHeaders != nil {
 		for k, v := range opts.PreflightHeaders {
 			w.Header().Set(k, v)
@@ -77,7 +77,7 @@ func preflight(w http.ResponseWriter, opts *CorsOptions) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 }
 
-func cors(w http.ResponseWriter, opts *CorsOptions) {
+func CorsHandler(w http.ResponseWriter, opts *CorsOptions) {
 	w.Header().Set("Access-Control-Allow-Origin", strings.Join(opts.Origins, ","))
 	w.Header().Set("Access-Control-Allow-Headers", strings.Join(opts.Headers, ","))
 	w.Header().Set("Access-Control-Allow-Methods", strings.Join(opts.Methods, ","))
@@ -119,14 +119,14 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /"+i.route, func(w http.ResponseWriter, r *http.Request) {
-		cors(w, corsOpts)
+		CorsHandler(w, corsOpts)
 		i.Handler()(w, r)
 	})
 
 	// Handle CORS preflight requests
 	mux.HandleFunc("/"+i.route, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
-			preflight(w, corsOpts)
+			PreflightHandler(w, corsOpts)
 			return
 		}
 	})
