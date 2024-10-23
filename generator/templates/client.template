@@ -3,12 +3,19 @@
  **/
 
 export type RequestOpts = {
+  // The HTTP method to use for the request
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "OPTIONS" | "HEAD";
+
+  // The headers to send with the request
   headers?: Record<string, string>;
+
+  // The body of the request; this should be a JSON string
   body?: string;
 }
 
 export type HttpClientFn = (url: string, opts?: RequestOpts) => Promise<Response>;
+
+export type ExtraFetchOpts = Exclude<RequestInit, "method" | "headers" | "body">;
 
 export type ClientOpts = {
   // The full robin endpoint to connect to (e.g. http://localhost:8080/_robin)
@@ -16,6 +23,12 @@ export type ClientOpts = {
 
   // Optional custom client function to use for making requests
   clientFn?: HttpClientFn;
+
+  /**
+   * Additional fetch options to pass to the underlying fetch API if the default client is being used (e.g. `mode`, `credentials`, etc.)
+   * This will do nothing if a custom client function is provided, set the options there instead
+   **/
+  fetchOpts?: ExtraFetchOpts;
 };
 
 export type ProcedureType = "query" | "mutation";
@@ -70,13 +83,16 @@ export type CallOpts<CSchema extends ClientSchema, PType extends ProcedureType, 
 {{.Schema}}
 {{end}}
 
-// Default client function that uses the fetch API which is available in most environments
-export function defaultClientFn(url: string, opts?: RequestOpts): Promise<Response> {
-  return fetch(url, {
-    method: opts?.method || "GET",
-    headers: opts?.headers || {},
-    body: opts?.body || undefined,
-  });
+// Create a new HTTP client function with the given fetch options
+export function createDefaultHttpClient(fetchOpts: ExtraFetchOpts): HttpClientFn {
+  return async (url: string, opts?: RequestOpts): Promise<Response> => {
+    return fetch(url, {
+      method: opts?.method || "GET",
+      headers: opts?.headers || {},
+      body: opts?.body || undefined,
+      ...fetchOpts,
+    });
+  };
 }
 
 /**
@@ -108,7 +124,7 @@ class Client<CSchema extends ClientSchema{{if .IncludeSchema}} = Schema{{end}}> 
     }
 
     this.endpoint = opts.endpoint;
-    this.clientFn = opts.clientFn || defaultClientFn;
+    this.clientFn = opts.clientFn || createDefaultHttpClient(opts.fetchOpts || {});
 
     this.queries = new Queries<CSchema>(this);
     this.mutations = new Mutations<CSchema>(this);
