@@ -78,15 +78,26 @@ func main() {
 		return
 	}
 
+	// Global middleware
+	r.
+		Use("call-log", func(ctx *robin.Context) error {
+			slog.Info("Global middleware", slog.String("procedure", ctx.ProcedureName()))
+			return nil
+		}).
+		Use("middleware-2", func(ctx *robin.Context) error {
+			slog.Info("Global middleware 2", slog.String("procedure", ctx.ProcedureName()))
+			return nil
+		})
+
 	instance, err := r.
 		Add(robin.Query("ping", ping)).
-		Add(robin.Query("getUser", getUser)).
+		Add(robin.Query("getUser", getUser).ExcludeMiddleware("middleware-2")). // Exclude middleware-2 from this procedure
 		Add(robin.Query("getUsersByIds", getUsersByIds)).
 		Add(robin.Query("getUsers", getUsers)).
-		Add(robin.Query("error", errorEndpoint)).
+		Add(robin.Query("error", errorEndpoint).ExcludeMiddleware("call-log", "middleware-2")). // Exclude call-log and middleware-2 from this procedure
 		Add(robin.Mutation("addUser", addUser)).
 		Add(robin.Mutation("deleteUser", deleteUser)).
-		Add(robin.Mutation("error", errorEndpoint)).
+		Add(robin.Mutation("error", errorEndpoint).ExcludeMiddleware("call-log")). // Exclude call-log from this procedure
 		Build()
 	if err != nil {
 		slog.Error("Failed to build Robin instance", slog.String("error", err.Error()))

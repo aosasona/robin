@@ -63,3 +63,10 @@ Accept: application/json
 POST {{url}}?__proc=m__error
 Content-Type: application/json
 Accept: application/json
+
+###
+
+# Error query
+POST {{url}}?__proc=q__error
+Content-Type: application/json
+Accept: application/json
