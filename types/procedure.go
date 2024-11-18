@@ -45,11 +45,18 @@ type Procedure interface {
 	// Middleware to be executed before the procedure is called
 	MiddlewareFns() []Middleware
 
+	// Set the middleware functions for the procedure at the beginning of the middleware chain
+	// You ideally should not use this method, use WithMiddleware instead unless you absolutely need to prepend middleware functions to the chain
+	PrependMiddleware(...Middleware) Procedure
+
 	// Set the middleware functions for the procedure
 	WithMiddleware(...Middleware) Procedure
-}
 
-type Middleware func(*Context) error
+	ExcludedMiddleware() *ExclusionList
+
+	// Exclude middleware functions from the procedure
+	ExcludeMiddleware(...string) Procedure
+}
 
 // No-op type to represent a procedure that doesn't return any response or take any payload
 type (
