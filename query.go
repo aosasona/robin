@@ -30,6 +30,9 @@ type (
 
 		// Whether the query expects a payload or not
 		expectsPayload bool
+
+		// Excluded middleware functions
+		excludedMiddleware *types.ExclusionList
 	}
 )
 
@@ -97,6 +100,12 @@ func (q *query[_, _]) MiddlewareFns() []types.Middleware {
 	return q.middlewareFns
 }
 
+// PrependMiddleware sets the middleware functions for the mutation at the beginning of the middleware chain
+func (q *query[_, _]) PrependMiddleware(fns ...types.Middleware) Procedure {
+	q.middlewareFns = append(fns, q.middlewareFns...)
+	return q
+}
+
 // Add the middleware functions for the query
 func (q *query[_, _]) WithMiddleware(fns ...types.Middleware) Procedure {
 	q.middlewareFns = append(q.middlewareFns, fns...)
@@ -108,7 +117,7 @@ func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
 	var body B
 	expectsPayload := guarded.ExpectsPayload(body)
 
-	return &query[R, B]{name: name, fn: fn, expectsPayload: expectsPayload}
+	return &query[R, B]{name: name, fn: fn, expectsPayload: expectsPayload, excludedMiddleware: &types.ExclusionList{}}
 }
 
 // Alias for `Query` to create a new query procedure
@@ -125,6 +134,17 @@ func QueryWithMiddleware[R any, B any](
 	q := Query(name, fn)
 	q.middlewareFns = middleware
 	return q
+}
+
+// ExcludeMiddleware takes a list of global middleware names and excludes them from the query
+func (q *query[_, _]) ExcludeMiddleware(names ...string) types.Procedure {
+	q.excludedMiddleware.AddMany(names)
+	return q
+}
+
+// ExcludedMiddleware returns the list of middleware functions that are excluded from the query
+func (q *query[_, _]) ExcludedMiddleware() *types.ExclusionList {
+	return q.excludedMiddleware
 }
 
 var _ Procedure = (*query[any, any])(nil)

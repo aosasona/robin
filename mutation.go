@@ -30,6 +30,9 @@ type (
 
 		// Whether the mutation expects a payload or not
 		expectsPayload bool
+
+		// Excluded middleware functions
+		excludedMiddleware *types.ExclusionList
 	}
 )
 
@@ -97,6 +100,12 @@ func (m *mutation[_, _]) MiddlewareFns() []types.Middleware {
 	return m.middlewareFns
 }
 
+// PrependMiddleware sets the middleware functions for the mutation at the beginning of the middleware chain
+func (m *mutation[_, _]) PrependMiddleware(fns ...types.Middleware) Procedure {
+	m.middlewareFns = append(fns, m.middlewareFns...)
+	return m
+}
+
 // WithMiddleware sets the middleware functions for the mutation
 func (m *mutation[_, _]) WithMiddleware(fns ...types.Middleware) Procedure {
 	m.middlewareFns = append(m.middlewareFns, fns...)
@@ -108,7 +117,7 @@ func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
 	var body B
 	expectsPayload := guarded.ExpectsPayload(body)
 
-	return &mutation[R, B]{name: name, fn: fn, expectsPayload: expectsPayload}
+	return &mutation[R, B]{name: name, fn: fn, expectsPayload: expectsPayload, excludedMiddleware: &types.ExclusionList{}}
 }
 
 // Alias for `Mutation` to create a new mutation procedure
@@ -125,6 +134,17 @@ func MutationWithMiddleware[R any, B any](
 	m := Mutation(name, fn)
 	m.WithMiddleware(middleware...)
 	return m
+}
+
+// ExcludeMiddleware takes a list of global middleware names and excludes them from the mutation
+func (m *mutation[_, _]) ExcludeMiddleware(names ...string) types.Procedure {
+	m.excludedMiddleware.AddMany(names)
+	return m
+}
+
+// ExcludedMiddleware returns the list of middleware functions that are excluded from the query
+func (m *mutation[_, _]) ExcludedMiddleware() *types.ExclusionList {
+	return m.excludedMiddleware
 }
 
 var _ Procedure = (*mutation[any, any])(nil)

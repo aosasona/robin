@@ -112,15 +112,6 @@ func (r *Robin) getProcedureMetaFromURL(url *url.URL) (ProcedureType, string, er
 
 // findProcedure finds a procedure by name and type in the Robin instance
 // An instance can have multiple procedures with the same name but different types
-func (r *Robin) findProcedure(name string, procedureType ProcedureType) (*Procedure, bool) {
-	procedure, ok := r.procedures[name]
-	if !ok {
-		return nil, false
-	}
-
-	if procedure.Type() != procedureType {
-		return nil, false
-	}
-
-	return &procedure, true
+func (r *Robin) findProcedure(name string, procedureType ProcedureType) (Procedure, bool) {
+	return r.procedures.Get(name, procedureType)
 }

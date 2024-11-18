@@ -76,6 +76,11 @@ type (
 		ErrorHandler ErrorHandler
 	}
 
+	GlobalMiddleware struct {
+		Name string
+		Fn   Middleware
+	}
+
 	Robin struct {
 		// Controls Typescript code generation
 		codegenOptions CodegenOptions
@@ -84,7 +89,11 @@ type (
 		debug bool
 
 		// A list of query and mutation procedures
-		procedures Procedures
+		procedures *Procedures
+
+		// A map of global middleware that will be executed before any procedure is called unless explicitly excluded/opted out of
+		// NOTE: a slice has been used instead of a map to maintain the order of insertion as this is crucial to the order of execution for some middlewares
+		namedGlobalMiddleware []GlobalMiddleware
 
 		// A function that will be called when an error occurs, if not provided, the default error handler will be used
 		errorHandler ErrorHandler
@@ -108,7 +117,7 @@ func New(opts Options) (*Robin, error) {
 	robin = &Robin{
 		codegenOptions: codegenOptions,
 		debug:          opts.EnableDebugMode,
-		procedures:     Procedures{},
+		procedures:     &Procedures{},
 		errorHandler:   errorHandler,
 	}
 
@@ -118,6 +127,10 @@ func New(opts Options) (*Robin, error) {
 // Add a new procedure to the Robin instance
 // If a procedure with the same name already exists, it will be skipped and a warning will be logged in debug mode
 func (r *Robin) Add(procedure Procedure) *Robin {
+	if r.debug {
+		slog.Info("Adding procedure", slog.String("procedureName", procedure.Name()))
+	}
+
 	if r.procedures.Exists(procedure.Name(), procedure.Type()) {
 		if r.debug {
 			slog.Warn(
@@ -138,13 +151,56 @@ func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 	return r.Add(procedure)
 }
 
+// Use adds a global middleware to the robin instance, these middlewares will be executed before any procedure is called unless explicitly excluded/opted out of
+// The order in which the middlewares are added is the order in which they will be executed before the procedures
+//
+// WARNING: Global middlewares are ALWAYS executed before the procedure's middleware functions
+//
+// NOTE: Use `procedure.ExcludeMiddleware(...)` to exclude a middleware from a specific procedure
+func (r *Robin) Use(name string, middleware Middleware) *Robin {
+	r.namedGlobalMiddleware = append(r.namedGlobalMiddleware, GlobalMiddleware{Name: name, Fn: middleware})
+	return r
+}
+
 // Build the Robin instance
 func (r *Robin) Build() (*Instance, error) {
 	// Validate all procedures
-	for _, procedure := range r.procedures.List() {
+	for _, procedure := range *r.procedures {
 		if err := procedure.Validate(); err != nil {
 			return nil, err
 		}
+
+		if r.debug {
+			slog.Info("Procedure validated", slog.String("procedureName", procedure.Name()))
+		}
+
+		// Check if we have excluded a wildcard middleware
+		if procedure.ExcludedMiddleware().Has("*") {
+			continue
+		}
+
+		var globalMiddleware []Middleware // This is to maintain the order of execution, attempting to prepending in the loop will reverse the order
+		// Add global middleware to the procedures
+		for _, middleware := range r.namedGlobalMiddleware {
+			if procedure.ExcludedMiddleware().Has(middleware.Name) {
+				continue
+			}
+
+			globalMiddleware = append(globalMiddleware, middleware.Fn)
+		}
+
+		// Prepend global middleware to the procedure's middleware chain
+		procedure.PrependMiddleware(globalMiddleware...)
+
+		if r.debug {
+			slog.Info("Global middleware added to procedure", slog.String("procedureName", procedure.Name()), slog.Int("middlewareCount", len(globalMiddleware)))
+		}
+
+		procedure.ExcludedMiddleware().Clear() // Clear the exclusion list to free up memory taken from the dedup
+	}
+
+	if r.debug {
+		slog.Info("Robin instance built successfully", slog.String("procedures", fmt.Sprintf("%v", r.procedures.Keys())))
 	}
 
 	return &Instance{
@@ -189,7 +245,7 @@ func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch ProcedureType(ctx.ProcedureType()) {
 	case ProcedureTypeQuery, ProcedureTypeMutation:
-		err := r.handleProcedureCall(ctx, *procedure)
+		err := r.handleProcedureCall(ctx, procedure)
 		if err != nil {
 			r.sendError(w, err)
 			return
@@ -221,14 +277,14 @@ func (r *Robin) makeMissingProcedureError(procedureName string, procedureType Pr
 		)
 	)
 
-	for name, proc := range r.procedures {
+	for _, procedure := range *r.procedures {
 		distance := levenshtein.ComputeDistance(
-			strings.ToLower(name),
+			strings.ToLower(procedure.Name()),
 			strings.ToLower(procedureName),
 		)
 
 		if closest == nil || distance < closestDistance {
-			closest = proc
+			closest = procedure
 			closestDistance = distance
 		}
 	}
