@@ -138,10 +138,7 @@ func QueryWithMiddleware[R any, B any](
 
 // ExcludeMiddleware takes a list of global middleware names and excludes them from the query
 func (q *query[_, _]) ExcludeMiddleware(names ...string) types.Procedure {
-	for _, name := range names {
-		q.excludedMiddleware.Add(name)
-	}
-
+	q.excludedMiddleware.AddMany(names)
 	return q
 }
 

@@ -138,10 +138,7 @@ func MutationWithMiddleware[R any, B any](
 
 // ExcludeMiddleware takes a list of global middleware names and excludes them from the mutation
 func (m *mutation[_, _]) ExcludeMiddleware(names ...string) types.Procedure {
-	for _, name := range names {
-		m.excludedMiddleware.Add(name)
-	}
-
+	m.excludedMiddleware.AddMany(names)
 	return m
 }
 
