@@ -33,7 +33,7 @@ func Test_QueryAlias(t *testing.T) {
 			})
 
 			if test.alias != "" {
-				q.SetAlias(test.alias)
+				q.WithAlias(test.alias)
 			}
 
 			if alias := q.Alias(); alias != test.expected {

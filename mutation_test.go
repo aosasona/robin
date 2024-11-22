@@ -27,7 +27,7 @@ func Test_MutationAlias(t *testing.T) {
 			})
 
 			if test.alias != "" {
-				m.SetAlias(test.alias)
+				m.WithAlias(test.alias)
 			}
 
 			if alias := m.Alias(); alias != test.expected {

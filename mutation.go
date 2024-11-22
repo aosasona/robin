@@ -115,8 +115,8 @@ func (m *mutation[_, _]) NormalizeProcedureName() string {
 // Alias returns the alias of the query
 func (m *mutation[_, _]) Alias() string { return m.alias }
 
-// SetAlias sets the alias of the query
-func (m *mutation[_, _]) SetAlias(alias string) Procedure {
+// WithAlias sets the alias of the query
+func (m *mutation[_, _]) WithAlias(alias string) Procedure {
 	m.alias = alias
 	return m
 }
