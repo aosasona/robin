@@ -92,9 +92,11 @@ func (i *Instance) BuildRestEndpoints(
 			method = types.HttpMethodPost
 		}
 
+		alias := strings.Trim(procedure.Alias(), "/")
+
 		endpoint := &RestEndpoint{
 			ProcedureName: procedure.Name(),
-			Path:          fmt.Sprintf("/%s/%s", prefix, procedure.Alias()),
+			Path:          fmt.Sprintf("/%s/%s", prefix, alias),
 			Method:        method,
 			HandlerFunc:   i.BuildProcedureHttpHandler(procedure),
 		}
