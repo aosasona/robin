@@ -41,7 +41,21 @@ const (
 	EnvEnableBindingsGen = "ROBIN_ENABLE_BINDINGS_GEN"
 )
 
-var procedureNameRegex = regexp.MustCompile(`(?m)^([a-zA-Z0-9]+)([_\.\-]?[a-zA-Z0-9]+)+$`)
+var (
+	// Valid procedure name regex
+	ReValidProcedureName = regexp.MustCompile(`(?m)^([a-zA-Z0-9]+)([_\.\-]?[a-zA-Z0-9]+)+$`)
+
+	// Invalid characters in a procedure name
+	ReAlphaNumeric = regexp.MustCompile(`[^a-zA-Z0-9]+`)
+
+	// Multiple dots in a procedure name
+	ReIllegalDot = regexp.MustCompile(`\.{2,}`)
+
+	// Valid/common words associated with queries
+	ReQueryWords = regexp.MustCompile(`(?i)(^(get|fetch|list|lookup|search|find|query|retrieve|show|view|read)\.)`)
+
+	ReMutationWords = regexp.MustCompile(`(?i)(^(create|add|insert|update|upsert|edit|modify|change|delete|remove|destroy)\.)`)
+)
 
 type (
 	CodegenOptions struct {
