@@ -53,7 +53,7 @@ type (
 		// Enable RESTful endpoints as alternatives to the defualt RPC procedures
 		Enable bool
 
-		// Prefix for the RESTful endpoints
+		// Prefix for the RESTful endpoints (default is `/api`)
 		Prefix string
 
 		// Whether to attach a 404 handler to the RESTful endpoints (enabled by default)
@@ -114,9 +114,15 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 		Headers: []string{"Content-Type", "Authorization"},
 		Methods: []string{"POST", "OPTIONS"},
 	}
+	var (
+		restApiOpts *RestApiOptions
+		config   *ServeOptions
+	)
 
 	if len(opts) > 0 {
-		optsPort := opts[0].Port
+		config = &opts[0]
+
+		optsPort := config.Port
 		if optsPort > 65535 {
 			return errors.New("invalid port provided")
 		}
@@ -129,15 +135,20 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 			i.port = optsPort
 		}
 
-		i.route = strings.TrimSpace(strings.Trim(opts[0].Route, "/"))
+		i.route = trimUrlPath(config.Route)
 		// WARNING: If the REST API is enabled, we cannot attach the route to `/` since we need that for the 404 endpoint
 		if i.route == "" && opts[0].RestApiOptions != nil && opts[0].RestApiOptions.Enable {
-			slog.Warn("⚠️ Robin cannot be attached to the root path at `/` when RESTful endpoints are enabled, using `/_robin` instead. You can customise this by setting the `Route` option in the `ServeOptions` struct.")
+			slog.Warn("⚠ Robin cannot be attached to the root path at `/` when RESTful endpoints are enabled, using `/_robin` instead. You can customise this by setting the `Route` option in the `ServeOptions` struct.")
+
 			i.route = "_robin"
 		}
 
-		if opts[0].CorsOptions != nil {
-			corsOpts = opts[0].CorsOptions
+		if config.CorsOptions != nil {
+			corsOpts = config.CorsOptions
+		}
+
+		if config.RestApiOptions != nil {
+			restApiOpts = config.RestApiOptions
 		}
 	}
 
@@ -155,7 +166,7 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 		}
 	})
 
-	i.AttachRestEndpoints(mux, opts[0].RestApiOptions)
+	i.AttachRestEndpoints(mux, restApiOpts)
 
 	slog.Info(
 		"📡 Robin server is listening",
@@ -273,4 +284,8 @@ func (i *Instance) validatePath(path string) error {
 	}
 
 	return nil
+}
+
+func trimUrlPath(path string) string {
+	return strings.Trim(strings.Trim(path, "/"), " ")
 }
