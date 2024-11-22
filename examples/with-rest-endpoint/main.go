@@ -35,7 +35,7 @@ func main() {
 		Add(robin.Query("ping", ping)).
 		Add(robin.Query("fail", fail)).
 		Add(robin.Query("list-todos", listTodos)).
-		Add(robin.Mutation("create.todo", createTodo)).
+		Add(robin.Mutation("create.todo", createTodo).WithAlias("/todo/new")). // You can also add aliases to mutations! (not like this though, bad path)
 		Build()
 	if err != nil {
 		log.Fatalf("Failed to build Robin instance: %s", err)

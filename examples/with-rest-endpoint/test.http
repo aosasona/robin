@@ -21,7 +21,7 @@ Accept: application/json
 ###
 
 # Create todo
-POST {{url}}/todo
+POST {{url}}/todo/new
 Content-Type: application/json
 Accept: application/json
 
