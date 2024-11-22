@@ -49,6 +49,14 @@ type (
 		PreflightHeaders map[string]string
 	}
 
+	RestApiOptions struct {
+		// Enable RESTful endpoints as alternatives to the defualt RPC procedures
+		Enable bool
+
+		// Prefix for the RESTful endpoints
+		Prefix string
+	}
+
 	ServeOptions struct {
 		// Port to run the server on
 		Port int
@@ -58,6 +66,10 @@ type (
 
 		// CORS options
 		CorsOptions *CorsOptions
+
+		// REST options
+		// NOTE: Json API endpoints carry an RPC-style notation by default, if you need to customise this, use the `Alias()` method on the prodecure
+		RestApiOptions *RestApiOptions
 	}
 )
 
@@ -130,6 +142,8 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 			return
 		}
 	})
+
+	i.attachRestApi(mux, opts[0].RestApiOptions)
 
 	slog.Info(
 		"📡 Robin server is listening",
@@ -205,6 +219,34 @@ func (i *Instance) Export(optPath ...string) error {
 	}
 
 	return nil
+}
+
+func (i *Instance) attachRestApi(mux *http.ServeMux, opts *RestApiOptions) {
+	if opts == nil || !opts.Enable {
+		return
+	}
+
+	prefix := strings.Trim(opts.Prefix, "/")
+	if prefix == "" {
+		prefix = "/api"
+	}
+
+	endpoints := i.robin.BuildRestEndpoints(prefix)
+	for _, endpoint := range endpoints {
+		if i.robin.debug {
+			slog.Info("🔗 Attaching RESTful endpoint", slog.String("endpoint", endpoint.String()))
+		}
+
+		mux.HandleFunc(fmt.Sprintf("%s %s", endpoint.Method, endpoint.Path), endpoint.HandlerFunc)
+	}
+
+	// If debug is enabled, print the rest endpoints
+	if i.robin.debug {
+		fmt.Println("+------------------------------------+")
+		fmt.Println("🔗 RESTful endpoints")
+		fmt.Println("+------------------------------------+")
+		fmt.Println(endpoints.String())
+	}
 }
 
 func (i *Instance) writeBindingsToFile(path, bindings string) error {

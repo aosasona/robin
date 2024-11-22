@@ -23,7 +23,9 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	var (
 		data = struct {
 			Payload any `json:"d"`
-		}{Payload: procedure.PayloadInterface()}
+		}{
+			Payload: procedure.PayloadInterface(),
+		}
 
 		response = make(map[string]any)
 	)
@@ -69,7 +71,9 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 
 	ctx.Response().Header().Add("content-type", "application/json")
 	ctx.Response().WriteHeader(200)
-	_, _ = ctx.Response().Write(strResponse)
+	if _, err := ctx.Response().Write(strResponse); err != nil {
+		slog.Error("Failed to write response", slog.String("error", err.Error()))
+	}
 
 	return nil
 }

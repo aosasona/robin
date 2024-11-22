@@ -17,6 +17,16 @@ type JSONSerializable interface {
 	json.Unmarshaler
 }
 
+type HttpMethod string
+
+const (
+	HttpMethodGet    HttpMethod = "GET"
+	HttpMethodPost   HttpMethod = "POST"
+	HttpMethodPut    HttpMethod = "PUT"
+	HttpMethodPatch  HttpMethod = "PATCH"
+	HttpMethodDelete HttpMethod = "DELETE"
+)
+
 type Procedure interface {
 	// The name of the procedure
 	Name() string

@@ -54,6 +54,7 @@ var (
 	// Valid/common words associated with queries
 	ReQueryWords = regexp.MustCompile(`(?i)(^(get|fetch|list|lookup|search|find|query|retrieve|show|view|read)\.)`)
 
+	// Valid/common words associated with mutations
 	ReMutationWords = regexp.MustCompile(`(?i)(^(create|add|insert|update|upsert|edit|modify|change|delete|remove|destroy)\.)`)
 )
 
@@ -327,14 +328,20 @@ func (r *Robin) sendError(w http.ResponseWriter, err error) {
 	jsonResp, err := json.Marshal(errMap)
 	if err != nil {
 		slog.Error("Failed to marshal error response", slog.String("error", err.Error()))
+
 		w.WriteHeader(500)
-		_, _ = w.Write([]byte("Internal server error"))
+		if _, err := w.Write([]byte("Internal server error")); err != nil {
+			slog.Error("Failed to write response", slog.String("error", err.Error()))
+		}
+
 		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_, _ = w.Write([]byte(jsonResp))
+	if _, err := w.Write([]byte(jsonResp)); err != nil {
+		slog.Error("Failed to write response", slog.String("error", err.Error()))
+	}
 }
 
 // extractCodegenOptions extracts the codegen options from the provided options and environment variables
