@@ -14,6 +14,11 @@ type Todo struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
+var todos = []Todo{
+	{"Hello world!", false, time.Now().Add(-time.Hour)},
+	{"Hello world again!", true, time.Now()},
+}
+
 func main() {
 	r, err := robin.New(robin.Options{
 		EnableDebugMode: true,
@@ -53,14 +58,12 @@ func ping(ctx *robin.Context, _ robin.Void) (string, error) {
 }
 
 func listTodos(ctx *robin.Context, _ robin.Void) ([]Todo, error) {
-	return []Todo{
-		{"Hello world!", false, time.Now()},
-		{"Hello world again!", true, time.Now()},
-	}, nil
+	return todos, nil
 }
 
 func createTodo(ctx *robin.Context, todo Todo) (Todo, error) {
 	todo.CreatedAt = time.Now()
+	todos = append(todos, todo)
 	return todo, nil
 }
 
