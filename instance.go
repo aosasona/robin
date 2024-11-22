@@ -124,6 +124,12 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 		}
 
 		i.route = strings.TrimSpace(strings.Trim(opts[0].Route, "/"))
+		// WARNING: If the REST API is enabled, we cannot attach the route to `/` since we need that for the 404 endpoint
+		if i.route == "" && opts[0].RestApiOptions != nil && opts[0].RestApiOptions.Enable {
+			slog.Warn("⚠️ Robin cannot be attached to the root path at `/` when RESTful endpoints are enabled, using `/_robin` instead. You can customise this by setting the `Route` option in the `ServeOptions` struct.")
+			i.route = "_robin"
+		}
+
 		if opts[0].CorsOptions != nil {
 			corsOpts = opts[0].CorsOptions
 		}
