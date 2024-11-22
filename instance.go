@@ -55,6 +55,9 @@ type (
 
 		// Prefix for the RESTful endpoints
 		Prefix string
+
+		// Whether to attach a 404 handler to the RESTful endpoints (enabled by default)
+		DisableNotFoundHandler bool
 	}
 
 	ServeOptions struct {
@@ -100,6 +103,9 @@ func CorsHandler(w http.ResponseWriter, opts *CorsOptions) {
 		w.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", opts.MaxAge))
 	}
 }
+
+// Robin returns the internal robin instance which allowes for more control over the instance if ever needed
+func (i *Instance) Robin() *Robin { return i.robin }
 
 // Serve starts the robin server on the specified port
 func (i *Instance) Serve(opts ...ServeOptions) error {
@@ -149,7 +155,7 @@ func (i *Instance) Serve(opts ...ServeOptions) error {
 		}
 	})
 
-	i.attachRestApi(mux, opts[0].RestApiOptions)
+	i.AttachRestEndpoints(mux, opts[0].RestApiOptions)
 
 	slog.Info(
 		"📡 Robin server is listening",
@@ -225,34 +231,6 @@ func (i *Instance) Export(optPath ...string) error {
 	}
 
 	return nil
-}
-
-func (i *Instance) attachRestApi(mux *http.ServeMux, opts *RestApiOptions) {
-	if opts == nil || !opts.Enable {
-		return
-	}
-
-	prefix := strings.Trim(opts.Prefix, "/")
-	if prefix == "" {
-		prefix = "/api"
-	}
-
-	endpoints := i.robin.BuildRestEndpoints(prefix)
-	for _, endpoint := range endpoints {
-		if i.robin.debug {
-			slog.Info("🔗 Attaching RESTful endpoint", slog.String("endpoint", endpoint.String()))
-		}
-
-		mux.HandleFunc(fmt.Sprintf("%s %s", endpoint.Method, endpoint.Path), endpoint.HandlerFunc)
-	}
-
-	// If debug is enabled, print the rest endpoints
-	if i.robin.debug {
-		fmt.Println("+------------------------------------+")
-		fmt.Println("🔗 RESTful endpoints")
-		fmt.Println("+------------------------------------+")
-		fmt.Println(endpoints.String())
-	}
 }
 
 func (i *Instance) writeBindingsToFile(path, bindings string) error {

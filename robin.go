@@ -139,6 +139,11 @@ func New(opts Options) (*Robin, error) {
 	return robin, nil
 }
 
+// Debug returns the debug mode status of the Robin instance
+func (r *Robin) Debug() bool {
+	return r.debug
+}
+
 // Add a new procedure to the Robin instance
 // If a procedure with the same name already exists, it will be skipped and a warning will be logged in debug mode
 func (r *Robin) Add(procedure Procedure) *Robin {

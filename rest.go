@@ -2,6 +2,7 @@ package robin
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"text/tabwriter"
@@ -59,17 +60,15 @@ func (e Endpoints) String() string {
 }
 
 // BuildProcedureHttpHandler builds an http handler for the given procedure
-func (r *Robin) BuildProcedureHttpHandler(
-	procedure Procedure,
-) http.HandlerFunc {
+func (i *Instance) BuildProcedureHttpHandler(procedure Procedure) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := types.NewContext(req, &w)
 
 		ctx.SetProcedureName(procedure.Name())
 		ctx.SetProcedureType(procedure.Type())
 
-		if err := r.handleProcedureCall(ctx, procedure); err != nil {
-			r.sendError(w, err)
+		if err := i.robin.handleProcedureCall(ctx, procedure); err != nil {
+			i.robin.sendError(w, err)
 			return
 		}
 	}
@@ -80,14 +79,14 @@ func (r *Robin) BuildProcedureHttpHandler(
 // The prefix is used to prefix the path of the rest endpoints (e.g. /api/v1)
 //
 // This should be called after all the procedures have been added to the robin instance
-func (r *Robin) BuildRestEndpoints(
+func (i *Instance) BuildRestEndpoints(
 	prefix string,
 ) Endpoints {
 	var endpoints []*RestEndpoint
 
 	prefix = strings.Trim(prefix, "/")
 
-	for _, procedure := range *r.procedures {
+	for _, procedure := range i.robin.procedures.List() {
 		method := types.HttpMethodGet
 		if procedure.Type() == types.ProcedureTypeMutation {
 			method = types.HttpMethodPost
@@ -97,11 +96,49 @@ func (r *Robin) BuildRestEndpoints(
 			ProcedureName: procedure.Name(),
 			Path:          fmt.Sprintf("/%s/%s", prefix, procedure.Alias()),
 			Method:        method,
-			HandlerFunc:   r.BuildProcedureHttpHandler(procedure),
+			HandlerFunc:   i.BuildProcedureHttpHandler(procedure),
 		}
 
 		endpoints = append(endpoints, endpoint)
 	}
 
 	return endpoints
+}
+
+// AttachRestEndpoints attaches the RESTful endpoints to the provided mux router automatically
+//
+// NOTE: If you require more control, look at the `BuildRestEndpoints` and the `BuildProcedureHttpHandler` methods on the `Robin` instance
+func (i *Instance) AttachRestEndpoints(mux *http.ServeMux, opts *RestApiOptions) {
+	if opts == nil || !opts.Enable {
+		return
+	}
+
+	prefix := strings.Trim(opts.Prefix, "/")
+	if prefix == "" {
+		prefix = "/api"
+	}
+
+	endpoints := i.BuildRestEndpoints(prefix)
+	for _, endpoint := range endpoints {
+		if i.robin.Debug() {
+			slog.Info("🔗 Attaching RESTful endpoint", slog.String("endpoint", endpoint.String()))
+		}
+
+		mux.HandleFunc(fmt.Sprintf("%s %s", endpoint.Method, endpoint.Path), endpoint.HandlerFunc)
+	}
+
+	// Attach the not found handler
+	if !opts.DisableNotFoundHandler {
+		mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+			i.robin.sendError(w, types.NewError("Resource not found", http.StatusNotFound))
+		})
+	}
+
+	// If debug is enabled, print the rest endpoints
+	if i.robin.Debug() {
+		fmt.Println("+------------------------------------+")
+		fmt.Println("🔗 RESTful endpoints")
+		fmt.Println("+------------------------------------+")
+		fmt.Println(endpoints.String())
+	}
 }
