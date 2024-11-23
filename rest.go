@@ -84,7 +84,7 @@ func (i *Instance) BuildRestEndpoints(
 ) Endpoints {
 	var endpoints []*RestEndpoint
 
-	prefix = strings.Trim(prefix, "/")
+	prefix = trimUrlPath(prefix)
 
 	for _, procedure := range i.robin.procedures.List() {
 		method := types.HttpMethodGet
@@ -92,11 +92,11 @@ func (i *Instance) BuildRestEndpoints(
 			method = types.HttpMethodPost
 		}
 
-		alias := strings.Trim(procedure.Alias(), "/")
+		alias := trimUrlPath(procedure.Alias())
 
 		endpoint := &RestEndpoint{
 			ProcedureName: procedure.Name(),
-			Path:          fmt.Sprintf("/%s/%s", prefix, alias),
+			Path:          trimUrlPath(fmt.Sprintf("/%s/%s", prefix, alias)),
 			Method:        method,
 			HandlerFunc:   i.BuildProcedureHttpHandler(procedure),
 		}
