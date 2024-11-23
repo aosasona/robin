@@ -1,0 +1,33 @@
+@url=http://localhost:8060/api
+
+GET {{url}}/ping
+Content-Type: application/json
+Accept: application/json
+
+###
+
+# Fail
+GET {{url}}/fail
+Content-Type: application/json
+Accept: application/json
+
+###
+
+# List todos
+GET {{url}}/todos
+Content-Type: application/json
+Accept: application/json
+
+###
+
+# Create todo
+POST {{url}}/todo/new
+Content-Type: application/json
+Accept: application/json
+
+{
+	"d": {
+		"title": "Test todo",
+		"completed": true
+	}
+}

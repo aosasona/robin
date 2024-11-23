@@ -2,6 +2,7 @@ package robin
 
 import (
 	"fmt"
+	"strings"
 
 	"go.trulyao.dev/robin/internal/guarded"
 	"go.trulyao.dev/robin/types"
@@ -33,8 +34,43 @@ type (
 
 		// Excluded middleware functions
 		excludedMiddleware *types.ExclusionList
+
+		// The mutation alias
+		alias string
 	}
 )
+
+// Creates a new mutation with the given name and handler function
+func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
+	var body B
+	expectsPayload := guarded.ExpectsPayload(body)
+
+	m := &mutation[R, B]{
+		name:               name,
+		fn:                 fn,
+		expectsPayload:     expectsPayload,
+		excludedMiddleware: &types.ExclusionList{},
+	}
+	m.alias = m.NormalizeProcedureName()
+
+	return m
+}
+
+// Alias for `Mutation` to create a new mutation procedure
+func M[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
+	return Mutation(name, fn)
+}
+
+// Creates a new mutation with the given name, handler function, and middleware functions
+func MutationWithMiddleware[R any, B any](
+	name string,
+	fn MutationFn[R, B],
+	middleware ...types.Middleware,
+) *mutation[R, B] {
+	m := Mutation(name, fn)
+	m.WithMiddleware(middleware...)
+	return m
+}
 
 // Returns the name of the current mutation
 func (m *mutation[_, _]) Name() string {
@@ -54,6 +90,35 @@ func (m *mutation[_, _]) PayloadInterface() any {
 // ReturnInterface returns a placeholder variable with the type of the return value of the mutation, this value is empty and only used for type inference/reflection during runtime
 func (m *mutation[_, _]) ReturnInterface() any {
 	return m.out
+}
+
+// NormalizeProcedureName normalizes the procedure name to a more human-readable format for use in the REST API
+func (m *mutation[_, _]) NormalizeProcedureName() string {
+	var alias string
+
+	// Replace all non-alphanumeric characters with dot
+	alias = ReAlphaNumeric.ReplaceAllString(m.name, ".")
+
+	// Replace all multiple dots with a single dot
+	alias = ReIllegalDot.ReplaceAllString(alias, ".")
+
+	// Remove all words that are associable with the query type
+	alias = ReMutationWords.ReplaceAllString(alias, "")
+
+	// Remove all leading and trailing dots and spaces
+	alias = strings.TrimSpace(alias)
+	alias = strings.Trim(alias, ".")
+
+	return alias
+}
+
+// Alias returns the alias of the query
+func (m *mutation[_, _]) Alias() string { return m.alias }
+
+// WithAlias sets the alias of the query
+func (m *mutation[_, _]) WithAlias(alias string) Procedure {
+	m.alias = alias
+	return m
 }
 
 // Calls the mutation with the given context and body
@@ -82,12 +147,12 @@ func (m *mutation[_, _]) Validate() error {
 		return RobinError{Reason: "Query name cannot be empty"}
 	}
 
-	if !procedureNameRegex.MatchString(m.name) {
+	if !ReValidProcedureName.MatchString(m.name) {
 		return RobinError{
 			Reason: fmt.Sprintf(
 				"Invalid procedure name: `%s`, expected string matching regex `%s` (example: `get_user`, `todo.create`)",
 				m.name,
-				procedureNameRegex,
+				ReValidProcedureName,
 			),
 		}
 	}
@@ -109,30 +174,6 @@ func (m *mutation[_, _]) PrependMiddleware(fns ...types.Middleware) Procedure {
 // WithMiddleware sets the middleware functions for the mutation
 func (m *mutation[_, _]) WithMiddleware(fns ...types.Middleware) Procedure {
 	m.middlewareFns = append(m.middlewareFns, fns...)
-	return m
-}
-
-// Creates a new mutation with the given name and handler function
-func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
-	var body B
-	expectsPayload := guarded.ExpectsPayload(body)
-
-	return &mutation[R, B]{name: name, fn: fn, expectsPayload: expectsPayload, excludedMiddleware: &types.ExclusionList{}}
-}
-
-// Alias for `Mutation` to create a new mutation procedure
-func M[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
-	return Mutation(name, fn)
-}
-
-// Creates a new mutation with the given name, handler function, and middleware functions
-func MutationWithMiddleware[R any, B any](
-	name string,
-	fn MutationFn[R, B],
-	middleware ...types.Middleware,
-) *mutation[R, B] {
-	m := Mutation(name, fn)
-	m.WithMiddleware(middleware...)
 	return m
 }
 

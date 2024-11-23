@@ -17,6 +17,16 @@ type JSONSerializable interface {
 	json.Unmarshaler
 }
 
+type HttpMethod string
+
+const (
+	HttpMethodGet    HttpMethod = "GET"
+	HttpMethodPost   HttpMethod = "POST"
+	HttpMethodPut    HttpMethod = "PUT"
+	HttpMethodPatch  HttpMethod = "PATCH"
+	HttpMethodDelete HttpMethod = "DELETE"
+)
+
 type Procedure interface {
 	// The name of the procedure
 	Name() string
@@ -56,6 +66,14 @@ type Procedure interface {
 
 	// Exclude middleware functions from the procedure
 	ExcludeMiddleware(...string) Procedure
+
+	// Alias the procedure with a different name for the REST API (and other potential future use cases)
+	WithAlias(string) Procedure
+
+	// Get the alias of the Procedure if it has one, otherwise, it returns a normalized version of the procedure name (e.g. `get_user` -> `user`, `todo.create` -> `todo.create`, `find-users` -> `users`)
+	//
+	// Common words like `get`, `find`, `create`, `update`, `delete` are normalized to their respective actions based on the procedure type
+	Alias() string
 }
 
 // No-op type to represent a procedure that doesn't return any response or take any payload

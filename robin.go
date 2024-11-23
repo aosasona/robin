@@ -41,7 +41,22 @@ const (
 	EnvEnableBindingsGen = "ROBIN_ENABLE_BINDINGS_GEN"
 )
 
-var procedureNameRegex = regexp.MustCompile(`(?m)^([a-zA-Z0-9]+)([_\.\-]?[a-zA-Z0-9]+)+$`)
+var (
+	// Valid procedure name regex
+	ReValidProcedureName = regexp.MustCompile(`(?m)^([a-zA-Z0-9]+)([_\.\-]?[a-zA-Z0-9]+)+$`)
+
+	// Invalid characters in a procedure name
+	ReAlphaNumeric = regexp.MustCompile(`[^a-zA-Z0-9]+`)
+
+	// Multiple dots in a procedure name
+	ReIllegalDot = regexp.MustCompile(`\.{2,}`)
+
+	// Valid/common words associated with queries
+	ReQueryWords = regexp.MustCompile(`(?i)(^(get|fetch|list|lookup|search|find|query|retrieve|show|view|read)\.)`)
+
+	// Valid/common words associated with mutations
+	ReMutationWords = regexp.MustCompile(`(?i)(^(create|add|insert|update|upsert|edit|modify|change|delete|remove|destroy)\.)`)
+)
 
 type (
 	CodegenOptions struct {
@@ -122,6 +137,11 @@ func New(opts Options) (*Robin, error) {
 	}
 
 	return robin, nil
+}
+
+// Debug returns the debug mode status of the Robin instance
+func (r *Robin) Debug() bool {
+	return r.debug
 }
 
 // Add a new procedure to the Robin instance
@@ -313,14 +333,20 @@ func (r *Robin) sendError(w http.ResponseWriter, err error) {
 	jsonResp, err := json.Marshal(errMap)
 	if err != nil {
 		slog.Error("Failed to marshal error response", slog.String("error", err.Error()))
+
 		w.WriteHeader(500)
-		_, _ = w.Write([]byte("Internal server error"))
+		if _, err := w.Write([]byte("Internal server error")); err != nil {
+			slog.Error("Failed to write response", slog.String("error", err.Error()))
+		}
+
 		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_, _ = w.Write([]byte(jsonResp))
+	if _, err := w.Write([]byte(jsonResp)); err != nil {
+		slog.Error("Failed to write response", slog.String("error", err.Error()))
+	}
 }
 
 // extractCodegenOptions extracts the codegen options from the provided options and environment variables

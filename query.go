@@ -2,6 +2,7 @@ package robin
 
 import (
 	"fmt"
+	"strings"
 
 	"go.trulyao.dev/robin/internal/guarded"
 	"go.trulyao.dev/robin/types"
@@ -33,8 +34,43 @@ type (
 
 		// Excluded middleware functions
 		excludedMiddleware *types.ExclusionList
+
+		// The query alias
+		alias string
 	}
 )
+
+// Creates a new query with the given name and handler function
+func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
+	var body B
+	expectsPayload := guarded.ExpectsPayload(body)
+
+	q := &query[R, B]{
+		name:               name,
+		fn:                 fn,
+		expectsPayload:     expectsPayload,
+		excludedMiddleware: &types.ExclusionList{},
+	}
+	q.alias = q.NormalizeProcedureName()
+
+	return q
+}
+
+// Alias for `Query` to create a new query procedure
+func Q[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
+	return Query(name, fn)
+}
+
+// Creates a new query with the given name, handler function and middleware functions
+func QueryWithMiddleware[R any, B any](
+	name string,
+	fn QueryFn[R, B],
+	middleware ...types.Middleware,
+) *query[R, B] {
+	q := Query(name, fn)
+	q.middlewareFns = middleware
+	return q
+}
 
 // Name returns the name of the query
 func (q *query[_, _]) Name() string {
@@ -54,6 +90,35 @@ func (q *query[_, _]) PayloadInterface() any {
 // ReturnInterface returns a placeholder variable with the type of the return value of the query, this value is empty and only used for type inference/reflection during runtime
 func (q *query[_, _]) ReturnInterface() any {
 	return q.out
+}
+
+// NormalizeProcedureName normalizes the procedure name to a more human-readable format for use in the REST API
+func (q *query[_, _]) NormalizeProcedureName() string {
+	var alias string
+
+	// Replace all non-alphanumeric characters with dot
+	alias = ReAlphaNumeric.ReplaceAllString(q.name, ".")
+
+	// Replace all multiple dots with a single dot
+	alias = ReIllegalDot.ReplaceAllString(alias, ".")
+
+	// Remove all words that are associable with the query type
+	alias = ReQueryWords.ReplaceAllString(alias, "")
+
+	// Remove all leading and trailing dots and spaces
+	alias = strings.TrimSpace(alias)
+	alias = strings.Trim(alias, ".")
+
+	return alias
+}
+
+// Alias returns the alias of the query
+func (q *query[_, _]) Alias() string { return q.alias }
+
+// WithAlias sets the alias of the query
+func (q *query[_, _]) WithAlias(alias string) Procedure {
+	q.alias = alias
+	return q
 }
 
 // Calls the query with the given context and params
@@ -82,12 +147,12 @@ func (q *query[_, _]) Validate() error {
 		return RobinError{Reason: "Query name cannot be empty"}
 	}
 
-	if !procedureNameRegex.MatchString(q.name) {
+	if !ReValidProcedureName.MatchString(q.name) {
 		return RobinError{
 			Reason: fmt.Sprintf(
 				"Invalid procedure name: `%s`, expected string matching regex `%s` (example: `get_user`, `todo.create`)",
 				q.name,
-				procedureNameRegex,
+				ReValidProcedureName,
 			),
 		}
 	}
@@ -109,30 +174,6 @@ func (q *query[_, _]) PrependMiddleware(fns ...types.Middleware) Procedure {
 // Add the middleware functions for the query
 func (q *query[_, _]) WithMiddleware(fns ...types.Middleware) Procedure {
 	q.middlewareFns = append(q.middlewareFns, fns...)
-	return q
-}
-
-// Creates a new query with the given name and handler function
-func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
-	var body B
-	expectsPayload := guarded.ExpectsPayload(body)
-
-	return &query[R, B]{name: name, fn: fn, expectsPayload: expectsPayload, excludedMiddleware: &types.ExclusionList{}}
-}
-
-// Alias for `Query` to create a new query procedure
-func Q[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
-	return Query(name, fn)
-}
-
-// Creates a new query with the given name, handler function and middleware functions
-func QueryWithMiddleware[R any, B any](
-	name string,
-	fn QueryFn[R, B],
-	middleware ...types.Middleware,
-) *query[R, B] {
-	q := Query(name, fn)
-	q.middlewareFns = middleware
 	return q
 }
 
