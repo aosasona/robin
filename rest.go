@@ -112,6 +112,7 @@ func (i *Instance) BuildRestEndpoints(
 // NOTE: If you require more control, look at the `BuildRestEndpoints` and the `BuildProcedureHttpHandler` methods on the `Robin` instance
 func (i *Instance) AttachRestEndpoints(mux *http.ServeMux, opts *RestApiOptions) {
 	if opts == nil || !opts.Enable {
+		slog.Warn("🔗 RESTful endpoints are disabled or not configured")
 		return
 	}
 
