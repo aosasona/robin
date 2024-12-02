@@ -96,7 +96,7 @@ func (i *Instance) BuildRestEndpoints(
 
 		endpoint := &RestEndpoint{
 			ProcedureName: procedure.Name(),
-			Path:          trimUrlPath(fmt.Sprintf("/%s/%s", prefix, alias)),
+			Path:          fmt.Sprintf("/%s/%s", prefix, alias),
 			Method:        method,
 			HandlerFunc:   i.BuildProcedureHttpHandler(procedure),
 		}
@@ -125,6 +125,10 @@ func (i *Instance) AttachRestEndpoints(mux *http.ServeMux, opts *RestApiOptions)
 	for _, endpoint := range endpoints {
 		if i.robin.Debug() {
 			slog.Info("🔗 Attaching RESTful endpoint", slog.String("endpoint", endpoint.String()))
+		}
+
+		if !strings.HasPrefix(endpoint.Path, "/") {
+			endpoint.Path = "/" + endpoint.Path
 		}
 
 		mux.HandleFunc(fmt.Sprintf("%s %s", endpoint.Method, endpoint.Path), endpoint.HandlerFunc)
