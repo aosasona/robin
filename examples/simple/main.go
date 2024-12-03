@@ -2,16 +2,19 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"go.trulyao.dev/robin"
 )
 
 type Todo struct {
-	Title     string    `json:"title"`
-	Completed bool      `json:"completed"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	Title       string    `json:"title"`
+	Description string    `json:"task_description" mirror:"optional:true"`
+	Completed   bool      `json:"completed"`
+	CreatedAt   time.Time `json:"created_at,omitempty"`
 }
 
 func main() {
@@ -53,12 +56,13 @@ func ping(ctx *robin.Context, _ robin.Void) (string, error) {
 
 func listTodos(ctx *robin.Context, _ robin.Void) ([]Todo, error) {
 	return []Todo{
-		{"Hello world!", false, time.Now()},
-		{"Hello world again!", true, time.Now()},
+		{"Hello world!", "", false, time.Now()},
+		{"Hello world again!", "", true, time.Now()},
 	}, nil
 }
 
 func createTodo(ctx *robin.Context, todo Todo) (Todo, error) {
+	slog.Info(fmt.Sprintf("Creating todo: %#v", todo))
 	todo.CreatedAt = time.Now()
 	return todo, nil
 }

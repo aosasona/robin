@@ -87,6 +87,7 @@ export type Schema = {
     "todos.list": {
       result: Array<{
         title: string;
+        task_description?: string;
         completed: boolean;
         created_at?: string;
       }>;
@@ -97,11 +98,13 @@ export type Schema = {
     "todos.create": {
       result: {
         title: string;
+        task_description?: string;
         completed: boolean;
         created_at?: string;
       };
       payload: {
         title: string;
+        task_description?: string;
         completed: boolean;
         created_at?: string;
       };
