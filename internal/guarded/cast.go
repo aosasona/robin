@@ -65,7 +65,20 @@ func CastType[Target any](from any, to Target) (Target, error) {
 
 		// Structs, arrays etc are decoded into map[key]|[] interface{} by the JSON decoder, so we can use mapstructure to decode them into the expected type
 	case reflect.Struct, reflect.Slice, reflect.Array:
-		mapstructure.Decode(from, &params)
+		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+			ErrorUnused: false,
+			ErrorUnset:  false,
+			Result:      &params,
+			TagName:     "json",
+		})
+		if err != nil {
+			return to, types.RobinError{Reason: "failed to create decoder", OriginalError: err}
+		}
+
+		err = decoder.Decode(from)
+		if err != nil {
+			return to, types.RobinError{Reason: "failed to decode value", OriginalError: err}
+		}
 
 	default:
 		return to, MakeCastError(to, from)
