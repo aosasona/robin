@@ -36,6 +36,8 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	// Decode the request body into the "typeless" payload field of the data struct
 	if procedure.ExpectsPayload() {
 		if err := json.NewDecoder(ctx.Request().Body).Decode(&data); err != nil {
+			defer ctx.Request().Body.Close()
+
 			if r.debug && err.Error() != "EOF" {
 				slog.Error("Failed to decode request body", slog.String("error", err.Error()))
 			}
