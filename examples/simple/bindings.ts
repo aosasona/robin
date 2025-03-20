@@ -87,9 +87,9 @@ export type Schema = {
     "todos.list": {
       result: Array<{
         title: string;
-        task_description?: string;
+        task_description?: string | null;
         completed: boolean;
-        created_at?: string;
+        created_at?: string | null;
       }>;
       payload: void;
     };
@@ -98,15 +98,24 @@ export type Schema = {
     "todos.create": {
       result: {
         title: string;
-        task_description?: string;
+        task_description?: string | null;
         completed: boolean;
-        created_at?: string;
+        created_at?: string | null;
       };
       payload: {
         title: string;
-        task_description?: string;
+        task_description?: string | null;
         completed: boolean;
-        created_at?: string;
+        created_at?: string | null;
+      };
+    };
+    "raw": {
+      result: string;
+      payload: {
+        title: string;
+        task_description?: string | null;
+        completed: boolean;
+        created_at?: string | null;
       };
     };
   };
@@ -175,6 +184,16 @@ class Mutations<CSchema extends ClientSchema = Schema> {
    **/
   async todosCreate(payload: PayloadOf<CSchema, "mutation", "todos.create">, opts?: CallOpts<CSchema, "mutation", "todos.create">): Promise<ProcedureResult<CSchema, "mutation", "todos.create">> {
     return await this.client.call("mutation", { ...opts, name: "todos.create", payload: payload });
+  }
+
+  /**
+   * @procedure raw
+   *
+   * @returns Promise<ProcedureResult<CSchema, "query", "raw">>
+   * @throws {ProcedureCallError} if the procedure call fails
+   **/
+  async raw(payload: PayloadOf<CSchema, "mutation", "raw">, opts?: CallOpts<CSchema, "mutation", "raw">): Promise<ProcedureResult<CSchema, "mutation", "raw">> {
+    return await this.client.call("mutation", { ...opts, name: "raw", payload: payload });
   }
 }
 

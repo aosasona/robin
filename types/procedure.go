@@ -119,7 +119,7 @@ type Procedure interface {
 	//
 	// Your procedure must have the following signature:
 	//
-	// func (ctx *Context, payload []byte) (<your return type>, error)
+	// func (ctx *Context, payload []byte) (YourReturnType, error)
 	//
 	// If not, this method will panic and force you to fix it.
 	WithRawPayload(actualPayloadType any) Procedure

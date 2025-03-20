@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"time"
@@ -14,7 +15,7 @@ type Todo struct {
 	Title       string    `json:"title"`
 	Description string    `json:"task_description" mirror:"optional:true"`
 	Completed   bool      `json:"completed"`
-	CreatedAt   time.Time `json:"created_at,omitempty"`
+	CreatedAt   time.Time `json:"created_at"       mirror:"optional:true"`
 }
 
 func main() {
@@ -35,6 +36,7 @@ func main() {
 		Add(robin.Query("fail", fail)).
 		Add(robin.Query("todos.list", listTodos)).
 		Add(robin.Mutation("todos.create", createTodo)).
+		Add(robin.Mutation("raw", raw).WithRawPayload(Todo{})).
 		Build()
 	if err != nil {
 		log.Fatalf("Failed to build Robin instance: %s", err)
@@ -69,5 +71,14 @@ func createTodo(ctx *robin.Context, todo Todo) (Todo, error) {
 
 // Yes, you can just return normal errors!
 func fail(ctx *robin.Context, _ robin.Void) (robin.Void, error) {
-	return robin.Void{}, errors.New("This is a procedure error!")
+	return robin.Void{}, errors.New("this is a procedure error")
+}
+
+func raw(ctx *robin.Context, body io.ReadCloser) (string, error) {
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }

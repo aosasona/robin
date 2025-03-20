@@ -144,6 +144,21 @@ func (m *mutation[_, _]) ExcludedMiddleware() *types.ExclusionList {
 	return m.excludedMiddleware
 }
 
+// WARNING: This is an experimental feature and may be removed in the future in favour of a more robust solution and without notice
+//
+// This method will allow you to call a procedure with a raw payload, bypassing the payload decoding step.
+//
+// This means that you get the raw `[]byte` payload that was sent to the server, and you can do whatever you want with it.
+// This is extremely useful for cases where you, for instance, want to decode into a union that cannot be automatically handled by Robin.
+// It also still allows you to provide an accurate type to represent the payload that the procedure expects for type inference.
+//
+// Your procedure must have the following signature:
+//
+// func (ctx *Context, payload []byte) (YourReturnType, error)
+//
+// If not, this method will panic and force you to fix it.
+//
+// NOTE: The actual data is nested in the `d` key of the payload object (`{"d": "your data"}`)
 func (m *mutation[_, _]) WithRawPayload(actualPayloadType any) Procedure {
 	// Ensure that the original input (provided via generics in In) is io.ReadCloser
 	mustImplementReadCloser(m.fn, ProcedureTypeMutation)
