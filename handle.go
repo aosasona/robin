@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"go.trulyao.dev/robin/internal/guarded"
+	"go.trulyao.dev/robin/types"
 )
 
 // handleProcedureCall handles a procedure call, calling the procedure and returning the result from the handler
@@ -34,7 +35,9 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 	response["data"] = Void{}
 
 	// Decode the request body into the "typeless" payload field of the data struct
-	if procedure.ExpectsPayload() {
+	switch procedure.ExpectedPayloadType() {
+	case types.ExpectedPayloadDecoded:
+		// Decode the request body into the payload field of the data struct
 		if err := json.NewDecoder(ctx.Request().Body).Decode(&data); err != nil {
 			defer ctx.Request().Body.Close()
 
@@ -51,7 +54,14 @@ func (r *Robin) handleProcedureCall(ctx *Context, procedure Procedure) error {
 				}
 			}
 		}
-	} else {
+
+	case types.ExpectedPayloadRaw:
+		// If the procedure expects a raw payload, we set the payload to the raw request body
+		data.Payload = ctx.Request().Body
+
+	case types.ExpectedPayloadNone:
+		fallthrough
+	default:
 		// If the procedure doesn't expect a payload, we set the payload to Void
 		data.Payload = Void{}
 	}
