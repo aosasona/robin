@@ -1,6 +1,10 @@
 package robin
 
-import "go.trulyao.dev/robin/types"
+import (
+	"slices"
+
+	"go.trulyao.dev/robin/types"
+)
 
 type (
 	Procedures []Procedure
@@ -49,7 +53,7 @@ func (p *Procedures) Add(procedure Procedure) {
 func (p *Procedures) Remove(name string, procedureType types.ProcedureType) {
 	for i, procedure := range *p {
 		if procedure.Name() == name && procedure.Type() == procedureType {
-			*p = append((*p)[:i], (*p)[i+1:]...)
+			*p = slices.Delete((*p), i, i+1)
 			break
 		}
 	}
