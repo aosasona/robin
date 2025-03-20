@@ -34,6 +34,9 @@ type Procedure interface {
 	// The type of the procedure, one of 'query' or 'mutation'
 	Type() ProcedureType
 
+	// Implement the Stringer interface
+	String() string
+
 	// Return an empty type that represents the payload that the procedure expects
 	// WARNING: whatever is returned here is only used for type inference/reflection during runtime; no value should be expected here
 	PayloadInterface() any

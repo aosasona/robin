@@ -82,6 +82,11 @@ func (m *mutation[_, _]) Type() ProcedureType {
 	return ProcedureTypeMutation
 }
 
+// String returns a string representation of the mutation
+func (m *mutation[_, _]) String() string {
+	return fmt.Sprintf("Mutation(%s)", m.name)
+}
+
 // PayloadInterface returns a placeholder variable with the type of the payload that the mutation expects, this value is empty and only used for type inference/reflection during runtime
 func (m *mutation[_, _]) PayloadInterface() any {
 	return m.in

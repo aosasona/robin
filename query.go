@@ -82,6 +82,11 @@ func (q *query[_, _]) Type() ProcedureType {
 	return ProcedureTypeQuery
 }
 
+// String returns a string representation of the query
+func (q *query[_, _]) String() string {
+	return fmt.Sprintf("Query(%s)", q.name)
+}
+
 // PayloadInterface returns a placeholder variable with the type of the payload that the query expects, this value is empty and only used for type inference/reflection during runtime
 func (q *query[_, _]) PayloadInterface() any {
 	return q.in
