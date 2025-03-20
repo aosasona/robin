@@ -52,10 +52,14 @@ var (
 	ReIllegalDot = regexp.MustCompile(`\.{2,}`)
 
 	// Valid/common words associated with queries
-	ReQueryWords = regexp.MustCompile(`(?i)(^(get|fetch|list|lookup|search|find|query|retrieve|show|view|read)\.)`)
+	ReQueryWords = regexp.MustCompile(
+		`(?i)(^(get|fetch|list|lookup|search|find|query|retrieve|show|view|read)\.)`,
+	)
 
 	// Valid/common words associated with mutations
-	ReMutationWords = regexp.MustCompile(`(?i)(^(create|add|insert|update|upsert|edit|modify|change|delete|remove|destroy)\.)`)
+	ReMutationWords = regexp.MustCompile(
+		`(?i)(^(create|add|insert|update|upsert|edit|modify|change|delete|remove|destroy)\.)`,
+	)
 )
 
 type (
@@ -178,7 +182,10 @@ func (r *Robin) AddProcedure(procedure Procedure) *Robin {
 //
 // NOTE: Use `procedure.ExcludeMiddleware(...)` to exclude a middleware from a specific procedure
 func (r *Robin) Use(name string, middleware Middleware) *Robin {
-	r.namedGlobalMiddleware = append(r.namedGlobalMiddleware, GlobalMiddleware{Name: name, Fn: middleware})
+	r.namedGlobalMiddleware = append(
+		r.namedGlobalMiddleware,
+		GlobalMiddleware{Name: name, Fn: middleware},
+	)
 	return r
 }
 
@@ -213,14 +220,23 @@ func (r *Robin) Build() (*Instance, error) {
 		procedure.PrependMiddleware(globalMiddleware...)
 
 		if r.debug {
-			slog.Info("Global middleware added to procedure", slog.String("procedureName", procedure.Name()), slog.Int("middlewareCount", len(globalMiddleware)))
+			slog.Info(
+				"Global middleware added to procedure",
+				slog.String("procedureName", procedure.Name()),
+				slog.Int("middlewareCount", len(globalMiddleware)),
+			)
 		}
 
-		procedure.ExcludedMiddleware().Clear() // Clear the exclusion list to free up memory taken from the dedup
+		procedure.ExcludedMiddleware().
+			Clear()
+		// Clear the exclusion list to free up memory taken from the dedup
 	}
 
 	if r.debug {
-		slog.Info("Robin instance built successfully", slog.String("procedures", fmt.Sprintf("%v", r.procedures.Keys())))
+		slog.Info(
+			"Robin instance built successfully",
+			slog.String("procedures", fmt.Sprintf("%v", r.procedures.Keys())),
+		)
 	}
 
 	return &Instance{

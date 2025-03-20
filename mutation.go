@@ -8,48 +8,22 @@ import (
 	"go.trulyao.dev/robin/types"
 )
 
-type (
-	MutationFn[ReturnType any, BodyType any] func(ctx *Context, body BodyType) (ReturnType, error)
-
-	mutation[ReturnType any, BodyType any] struct {
-		// The name of the mutation
-		name string
-
-		// The function that will be called when the mutation is executed
-		fn MutationFn[ReturnType, BodyType]
-
-		// A placeholder for the type of the body that the mutation expects
-		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
-		in BodyType
-
-		// A placeholder for the return type of the mutation
-		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
-		out ReturnType
-
-		// Middleware functions to be executed before the mutation is called
-		middlewareFns []types.Middleware
-
-		// Whether the mutation expects a payload or not
-		expectsPayload bool
-
-		// Excluded middleware functions
-		excludedMiddleware *types.ExclusionList
-
-		// The mutation alias
-		alias string
-	}
-)
+type mutation[ReturnType any, BodyType any] struct {
+	*baseProcedure[ReturnType, BodyType]
+}
 
 // Creates a new mutation with the given name and handler function
-func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
+func Mutation[R any, B any](name string, fn ProcedureFn[R, B]) *mutation[R, B] {
 	var body B
-	expectsPayload := guarded.ExpectsPayload(body)
+	expectedPayloadType := guarded.ExpectsPayload(body)
 
 	m := &mutation[R, B]{
-		name:               name,
-		fn:                 fn,
-		expectsPayload:     expectsPayload,
-		excludedMiddleware: &types.ExclusionList{},
+		baseProcedure: &baseProcedure[R, B]{
+			name:                name,
+			fn:                  fn,
+			expectedPayloadType: expectedPayloadType,
+			excludedMiddleware:  &types.ExclusionList{},
+		},
 	}
 	m.alias = m.NormalizeProcedureName()
 
@@ -57,14 +31,14 @@ func Mutation[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
 }
 
 // Alias for `Mutation` to create a new mutation procedure
-func M[R any, B any](name string, fn MutationFn[R, B]) *mutation[R, B] {
+func M[R any, B any](name string, fn ProcedureFn[R, B]) *mutation[R, B] {
 	return Mutation(name, fn)
 }
 
 // Creates a new mutation with the given name, handler function, and middleware functions
 func MutationWithMiddleware[R any, B any](
 	name string,
-	fn MutationFn[R, B],
+	fn ProcedureFn[R, B],
 	middleware ...types.Middleware,
 ) *mutation[R, B] {
 	m := Mutation(name, fn)
@@ -72,24 +46,14 @@ func MutationWithMiddleware[R any, B any](
 	return m
 }
 
-// Returns the name of the current mutation
-func (m *mutation[_, _]) Name() string {
-	return m.name
-}
-
 // Returns the type of the procedure, one of 'query' or 'mutation' - in this case, it's always 'mutation'
 func (m *mutation[_, _]) Type() ProcedureType {
 	return ProcedureTypeMutation
 }
 
-// PayloadInterface returns a placeholder variable with the type of the payload that the mutation expects, this value is empty and only used for type inference/reflection during runtime
-func (m *mutation[_, _]) PayloadInterface() any {
-	return m.in
-}
-
-// ReturnInterface returns a placeholder variable with the type of the return value of the mutation, this value is empty and only used for type inference/reflection during runtime
-func (m *mutation[_, _]) ReturnInterface() any {
-	return m.out
+// String returns a string representation of the mutation
+func (m *mutation[_, _]) String() string {
+	return fmt.Sprintf("Mutation(%s)", m.name)
 }
 
 // NormalizeProcedureName normalizes the procedure name to a more human-readable format for use in the REST API
@@ -112,9 +76,6 @@ func (m *mutation[_, _]) NormalizeProcedureName() string {
 	return alias
 }
 
-// Alias returns the alias of the query
-func (m *mutation[_, _]) Alias() string { return m.alias }
-
 // WithAlias sets the alias of the query
 func (m *mutation[_, _]) WithAlias(alias string) Procedure {
 	m.alias = alias
@@ -123,7 +84,7 @@ func (m *mutation[_, _]) WithAlias(alias string) Procedure {
 
 // Calls the mutation with the given context and body
 func (m *mutation[ReturnType, BodyType]) Call(ctx *Context, rawBody any) (any, error) {
-	body, err := guarded.CastType(rawBody, m.in)
+	body, err := guarded.CastType(rawBody, m.in.InferredType())
 	if err != nil {
 		return nil, err
 	}
@@ -133,11 +94,6 @@ func (m *mutation[ReturnType, BodyType]) Call(ctx *Context, rawBody any) (any, e
 	}
 
 	return m.fn(ctx, body)
-}
-
-// Returns whether the mutation expects a payload or not
-func (m *mutation[_, _]) ExpectsPayload() bool {
-	return m.expectsPayload
 }
 
 // Validate validates the query
@@ -186,6 +142,30 @@ func (m *mutation[_, _]) ExcludeMiddleware(names ...string) types.Procedure {
 // ExcludedMiddleware returns the list of middleware functions that are excluded from the query
 func (m *mutation[_, _]) ExcludedMiddleware() *types.ExclusionList {
 	return m.excludedMiddleware
+}
+
+// WARNING: This is an experimental feature and may be removed in the future in favour of a more robust solution and without notice
+//
+// This method will allow you to call a procedure with a raw payload, bypassing the payload decoding step.
+//
+// This means that you get the raw `[]byte` payload that was sent to the server, and you can do whatever you want with it.
+// This is extremely useful for cases where you, for instance, want to decode into a union that cannot be automatically handled by Robin.
+// It also still allows you to provide an accurate type to represent the payload that the procedure expects for type inference.
+//
+// Your procedure must have the following signature:
+//
+// func (ctx *Context, payload []byte) (YourReturnType, error)
+//
+// If not, this method will panic and force you to fix it.
+//
+// NOTE: The actual data is nested in the `d` key of the payload object (`{"d": "your data"}`)
+func (m *mutation[_, _]) WithRawPayload(actualPayloadType any) Procedure {
+	// Ensure that the original input (provided via generics in In) is io.ReadCloser
+	mustImplementReadCloser(m.fn, ProcedureTypeMutation)
+
+	m.in.SetOverrideType(actualPayloadType)
+	m.expectedPayloadType = types.ExpectedPayloadRaw
+	return m
 }
 
 var _ Procedure = (*mutation[any, any])(nil)
