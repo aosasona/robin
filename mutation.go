@@ -2,7 +2,6 @@ package robin
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"go.trulyao.dev/robin/internal/guarded"
@@ -143,6 +142,15 @@ func (m *mutation[_, _]) ExcludeMiddleware(names ...string) types.Procedure {
 // ExcludedMiddleware returns the list of middleware functions that are excluded from the query
 func (m *mutation[_, _]) ExcludedMiddleware() *types.ExclusionList {
 	return m.excludedMiddleware
+}
+
+func (m *mutation[_, _]) WithRawPayload(actualPayloadType any) Procedure {
+	// Ensure that the original input (provided via generics in In) is io.ReadCloser
+	mustImplementReadCloser(m.fn, ProcedureTypeMutation)
+
+	m.in.SetOverrideType(actualPayloadType)
+	m.expectedPayloadType = types.ExpectedPayloadRaw
+	return m
 }
 
 var _ Procedure = (*mutation[any, any])(nil)

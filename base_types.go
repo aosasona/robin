@@ -1,6 +1,10 @@
 package robin
 
 import (
+	"fmt"
+	"io"
+	"reflect"
+
 	"go.trulyao.dev/robin/types"
 )
 
@@ -59,4 +63,31 @@ func (b *baseProcedure[_, _]) ReturnInterface() any {
 // ExpectsPayload returns whether the procedure expects a payload or not
 func (b *baseProcedure[_, _]) ExpectedPayloadType() types.ExpectedPayloadType {
 	return b.expectedPayloadType
+}
+
+func implementsReadCloser[Out, In any](fn ProcedureFn[Out, In]) bool {
+	fnType := reflect.TypeOf(fn)
+	if fnType.NumIn() != 2 {
+		return false
+	}
+
+	secondArg := fnType.In(1)
+	return secondArg == reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+}
+
+func mustImplementReadCloser[Out, In any](
+	fn ProcedureFn[Out, In],
+	procedureType types.ProcedureType,
+) {
+	if !implementsReadCloser(fn) {
+		secondArg := reflect.TypeOf(fn).In(1)
+
+		panic(
+			fmt.Sprintf(
+				"you called `WithRawPayload` on a %s that doesn't expect a raw payload, expected `io.ReadCloser` but got %s",
+				procedureType,
+				secondArg,
+			),
+		)
+	}
 }

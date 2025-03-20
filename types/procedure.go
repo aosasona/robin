@@ -12,6 +12,10 @@ const (
 	ProcedureTypeMutation ProcedureType = "mutation"
 )
 
+func (p ProcedureType) String() string {
+	return string(p)
+}
+
 type JSONSerializable interface {
 	json.Marshaler
 	json.Unmarshaler
@@ -40,15 +44,15 @@ type In[PayloadType any] struct {
 	overrideType any
 }
 
-func (i In[PayloadType]) InferredType() PayloadType {
+func (i *In[PayloadType]) InferredType() PayloadType {
 	return i.inferredType
 }
 
-func (i In[PayloadType]) OverrideType() any {
+func (i *In[PayloadType]) OverrideType() any {
 	return i.overrideType
 }
 
-func (i In[PayloadType]) SetOverrideType(t any) any {
+func (i *In[PayloadType]) SetOverrideType(t any) any {
 	i.overrideType = t
 	return i.overrideType
 }
@@ -104,6 +108,21 @@ type Procedure interface {
 	//
 	// Common words like `get`, `find`, `create`, `update`, `delete` are normalized to their respective actions based on the procedure type
 	Alias() string
+
+	// WARNING: This is an experimental feature and may be removed in the future in favour of a more robust solution and without notice
+	//
+	// This method will allow you to call a procedure with a raw payload, bypassing the payload decoding step.
+	//
+	// This means that you get the raw `[]byte` payload that was sent to the server, and you can do whatever you want with it.
+	// This is extremely useful for cases where you, for instance, want to decode into a union that cannot be automatically handled by Robin.
+	// It also still allows you to provide an accurate type to represent the payload that the procedure expects for type inference.
+	//
+	// Your procedure must have the following signature:
+	//
+	// func (ctx *Context, payload []byte) (<your return type>, error)
+	//
+	// If not, this method will panic and force you to fix it.
+	WithRawPayload(actualPayloadType any) Procedure
 }
 
 // No-op type to represent a procedure that doesn't return any response or take any payload

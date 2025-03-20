@@ -2,7 +2,6 @@ package robin
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"go.trulyao.dev/robin/internal/guarded"
@@ -148,6 +147,16 @@ func (q *query[_, _]) ExcludeMiddleware(names ...string) types.Procedure {
 // ExcludedMiddleware returns the list of middleware functions that are excluded from the query
 func (q *query[_, _]) ExcludedMiddleware() *types.ExclusionList {
 	return q.excludedMiddleware
+}
+
+// WithRawPayload sets the type of the payload that the query expects (for client type inference)
+func (q *query[_, _]) WithRawPayload(actualPayloadType any) Procedure {
+	// Ensure that the original input (provided via generics in In) is io.ReadCloser
+	mustImplementReadCloser(q.fn, ProcedureTypeQuery)
+
+	q.in.SetOverrideType(actualPayloadType)
+	q.expectedPayloadType = types.ExpectedPayloadRaw
+	return q
 }
 
 var _ Procedure = (*query[any, any])(nil)
