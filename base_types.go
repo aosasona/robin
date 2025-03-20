@@ -1,0 +1,62 @@
+package robin
+
+import (
+	"go.trulyao.dev/robin/types"
+)
+
+type ProcedureFn[Out any, In any] func(ctx *Context, body In) (Out, error)
+
+type baseProcedure[Out any, In any] struct {
+	// The name of the procedure
+	name string
+
+	// The function that will be called when the procedure is executed
+	fn ProcedureFn[Out, In]
+
+	// A placeholder for the type of the body that the procedure expects
+	// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
+	in types.In[In]
+
+	// A placeholder for the return type of the procedure
+	// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
+	out Out
+
+	// Middleware functions to be executed before the mutation is called
+	middlewareFns []types.Middleware
+
+	// Indicates whether the procedure expects a payload, and if so, what type of payload it expects
+	expectedPayloadType types.ExpectedPayloadType
+
+	// Excluded middleware functions
+	excludedMiddleware *types.ExclusionList
+
+	// The procedure alias
+	alias string
+}
+
+func (b *baseProcedure[_, _]) Name() string {
+	return b.name
+}
+
+func (b *baseProcedure[_, _]) Alias() string {
+	return b.alias
+}
+
+// PayloadInterface returns a placeholder variable with the type of the payload that the procedure expects, this value is empty and only used for type inference/reflection during runtime
+func (b *baseProcedure[_, _]) PayloadInterface() any {
+	if b.expectedPayloadType == types.ExpectedPayloadRaw {
+		return b.in.OverrideType()
+	}
+
+	return b.in.InferredType()
+}
+
+// ReturnInterface returns a placeholder variable with the type of the return value of the procedure, this value is empty and only used for type inference/reflection during runtime
+func (b *baseProcedure[_, _]) ReturnInterface() any {
+	return b.out
+}
+
+// ExpectsPayload returns whether the procedure expects a payload or not
+func (b *baseProcedure[_, _]) ExpectedPayloadType() types.ExpectedPayloadType {
+	return b.expectedPayloadType
+}

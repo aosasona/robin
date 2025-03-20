@@ -2,54 +2,29 @@ package robin
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"go.trulyao.dev/robin/internal/guarded"
 	"go.trulyao.dev/robin/types"
 )
 
-type (
-	QueryFn[ReturnType any, ParamsType any] func(ctx *Context, body ParamsType) (ReturnType, error)
-
-	query[ReturnType any, ParamsType any] struct {
-		// The name of the query
-		name string
-
-		// The function that will be called when the query is executed
-		fn QueryFn[ReturnType, ParamsType]
-
-		// A placeholder for the type of the body that the query expects
-		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
-		in types.In[ParamsType]
-
-		// A placeholder for the return type of the query
-		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
-		out ReturnType
-
-		// Middleware functions to be executed before the mutation is called
-		middlewareFns []types.Middleware
-
-		// Indicates whether the query expects a payload, and if so, what type of payload it expects
-		expectedPayloadType types.ExpectedPayloadType
-
-		// Excluded middleware functions
-		excludedMiddleware *types.ExclusionList
-
-		// The query alias
-		alias string
-	}
-)
+type query[ReturnType any, ParamsType any] struct {
+	*baseProcedure[ReturnType, ParamsType]
+}
 
 // Creates a new query with the given name and handler function
-func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
+func Query[R any, B any](name string, fn ProcedureFn[R, B]) *query[R, B] {
 	var body B
 	expectedPayloadType := guarded.ExpectsPayload(body)
 
 	q := &query[R, B]{
-		name:                name,
-		fn:                  fn,
-		expectedPayloadType: expectedPayloadType,
-		excludedMiddleware:  &types.ExclusionList{},
+		baseProcedure: &baseProcedure[R, B]{
+			name:                name,
+			fn:                  fn,
+			expectedPayloadType: expectedPayloadType,
+			excludedMiddleware:  &types.ExclusionList{},
+		},
 	}
 	q.alias = q.NormalizeProcedureName()
 
@@ -57,24 +32,19 @@ func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
 }
 
 // Alias for `Query` to create a new query procedure
-func Q[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
+func Q[R any, B any](name string, fn ProcedureFn[R, B]) *query[R, B] {
 	return Query(name, fn)
 }
 
 // Creates a new query with the given name, handler function and middleware functions
 func QueryWithMiddleware[R any, B any](
 	name string,
-	fn QueryFn[R, B],
+	fn ProcedureFn[R, B],
 	middleware ...types.Middleware,
 ) *query[R, B] {
 	q := Query(name, fn)
 	q.middlewareFns = middleware
 	return q
-}
-
-// Name returns the name of the query
-func (q *query[_, _]) Name() string {
-	return q.name
 }
 
 // Returns the type of the procedure, one of 'query' or 'mutation' - in this case, it's always 'query'
@@ -85,20 +55,6 @@ func (q *query[_, _]) Type() ProcedureType {
 // String returns a string representation of the query
 func (q *query[_, _]) String() string {
 	return fmt.Sprintf("Query(%s)", q.name)
-}
-
-// PayloadInterface returns a placeholder variable with the type of the payload that the query expects, this value is empty and only used for type inference/reflection during runtime
-func (q *query[_, _]) PayloadInterface() any {
-	if q.expectedPayloadType == types.ExpectedPayloadRaw {
-		return q.in.OverrideType()
-	}
-
-	return q.in.InferredType()
-}
-
-// ReturnInterface returns a placeholder variable with the type of the return value of the query, this value is empty and only used for type inference/reflection during runtime
-func (q *query[_, _]) ReturnInterface() any {
-	return q.out
 }
 
 // NormalizeProcedureName normalizes the procedure name to a more human-readable format for use in the REST API
@@ -120,9 +76,6 @@ func (q *query[_, _]) NormalizeProcedureName() string {
 
 	return alias
 }
-
-// Alias returns the alias of the query
-func (q *query[_, _]) Alias() string { return q.alias }
 
 // WithAlias sets the alias of the query
 func (q *query[_, _]) WithAlias(alias string) Procedure {
