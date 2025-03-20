@@ -27,6 +27,32 @@ const (
 	HttpMethodDelete HttpMethod = "DELETE"
 )
 
+type ExpectedPayloadType int
+
+const (
+	ExpectedPayloadNone ExpectedPayloadType = iota
+	ExpectedPayloadDecoded
+	ExpectedPayloadRaw
+)
+
+type In[PayloadType any] struct {
+	inferredType PayloadType
+	overrideType any
+}
+
+func (i In[PayloadType]) InferredType() PayloadType {
+	return i.inferredType
+}
+
+func (i In[PayloadType]) OverrideType() any {
+	return i.overrideType
+}
+
+func (i In[PayloadType]) SetOverrideType(t any) any {
+	i.overrideType = t
+	return i.overrideType
+}
+
 type Procedure interface {
 	// The name of the procedure
 	Name() string
@@ -45,9 +71,10 @@ type Procedure interface {
 	// WARNING: whatever is returned here is only used for type inference/reflection during runtime; no value should be expected here
 	ReturnInterface() any
 
-	// Check if the procedure expects a payload or not
-	// This is useful for procedures that don't expect a payload, so we can instantly skip the payload decoding step
-	ExpectsPayload() bool
+	// Returns the type of the payload that the procedure expects
+	// This is useful for procedures that don't expect a payload, so we can instantly skip the payload decoding step.
+	// This is also useful for procedures that expect a raw payload, so we can skip the decoding step and pass the raw payload to the procedure.
+	ExpectedPayloadType() ExpectedPayloadType
 
 	// Call the procedure with the given context and payload
 	Call(*Context, any) (any, error)

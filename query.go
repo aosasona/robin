@@ -20,7 +20,7 @@ type (
 
 		// A placeholder for the type of the body that the query expects
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
-		in ParamsType
+		in types.In[ParamsType]
 
 		// A placeholder for the return type of the query
 		// WARNING: This never really has a value, it's just used for "type inference/reflection" during runtime
@@ -29,8 +29,8 @@ type (
 		// Middleware functions to be executed before the mutation is called
 		middlewareFns []types.Middleware
 
-		// Whether the query expects a payload or not
-		expectsPayload bool
+		// Indicates whether the query expects a payload, and if so, what type of payload it expects
+		expectedPayloadType types.ExpectedPayloadType
 
 		// Excluded middleware functions
 		excludedMiddleware *types.ExclusionList
@@ -43,13 +43,13 @@ type (
 // Creates a new query with the given name and handler function
 func Query[R any, B any](name string, fn QueryFn[R, B]) *query[R, B] {
 	var body B
-	expectsPayload := guarded.ExpectsPayload(body)
+	expectedPayloadType := guarded.ExpectsPayload(body)
 
 	q := &query[R, B]{
-		name:               name,
-		fn:                 fn,
-		expectsPayload:     expectsPayload,
-		excludedMiddleware: &types.ExclusionList{},
+		name:                name,
+		fn:                  fn,
+		expectedPayloadType: expectedPayloadType,
+		excludedMiddleware:  &types.ExclusionList{},
 	}
 	q.alias = q.NormalizeProcedureName()
 
@@ -89,7 +89,11 @@ func (q *query[_, _]) String() string {
 
 // PayloadInterface returns a placeholder variable with the type of the payload that the query expects, this value is empty and only used for type inference/reflection during runtime
 func (q *query[_, _]) PayloadInterface() any {
-	return q.in
+	if q.expectedPayloadType == types.ExpectedPayloadRaw {
+		return q.in.OverrideType()
+	}
+
+	return q.in.InferredType()
 }
 
 // ReturnInterface returns a placeholder variable with the type of the return value of the query, this value is empty and only used for type inference/reflection during runtime
@@ -128,7 +132,7 @@ func (q *query[_, _]) WithAlias(alias string) Procedure {
 
 // Calls the query with the given context and params
 func (q *query[ReturnType, ParamsType]) Call(ctx *Context, rawParams any) (any, error) {
-	params, err := guarded.CastType(rawParams, q.in)
+	params, err := guarded.CastType(rawParams, q.in.InferredType())
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +145,8 @@ func (q *query[ReturnType, ParamsType]) Call(ctx *Context, rawParams any) (any, 
 }
 
 // ExpectsPayload returns whether the query expects a payload or not
-func (q *query[_, _]) ExpectsPayload() bool {
-	return q.expectsPayload
+func (q *query[_, _]) ExpectedPayloadType() types.ExpectedPayloadType {
+	return q.expectedPayloadType
 }
 
 // Validate validates the query
