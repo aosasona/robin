@@ -65,6 +65,9 @@ func (b *baseProcedure[_, _]) ExpectedPayloadType() types.ExpectedPayloadType {
 	return b.expectedPayloadType
 }
 
+// INFO: If you are wondering "why are you not just passing in in.InferredType()?",
+// it is because interfaces are nil by default and lose all type information when passed around,
+// so, the only way to keep the type information is to pass in the actual type from the function signature
 func implementsReadCloser[Out, In any](fn ProcedureFn[Out, In]) bool {
 	fnType := reflect.TypeOf(fn)
 	if fnType.NumIn() != 2 {
