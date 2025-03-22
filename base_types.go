@@ -75,7 +75,8 @@ func implementsReadCloser[Out, In any](fn ProcedureFn[Out, In]) bool {
 	}
 
 	secondArg := fnType.In(1)
-	return secondArg == reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+	typeOfIoReadCloser := reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+	return secondArg.AssignableTo(typeOfIoReadCloser)
 }
 
 func mustImplementReadCloser[Out, In any](
@@ -87,9 +88,9 @@ func mustImplementReadCloser[Out, In any](
 
 		panic(
 			fmt.Sprintf(
-				"you called `WithRawPayload` on a %s that doesn't expect a raw payload, expected `io.ReadCloser` but got %s",
+				"you called `WithRawPayload` on a %s that doesn't expect a raw payload, expected `io.ReadCloser` from package `io`, but got %s",
 				procedureType,
-				secondArg,
+				fmt.Sprintf("`%v` from package `%v`", secondArg.Name(), secondArg.PkgPath()),
 			),
 		)
 	}
