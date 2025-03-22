@@ -1,9 +1,12 @@
 package robin_test
 
 import (
+	"io"
+	"reflect"
 	"testing"
 
 	"go.trulyao.dev/robin"
+	"go.trulyao.dev/robin/types"
 )
 
 func Test_MutationAlias(t *testing.T) {
@@ -34,5 +37,45 @@ func Test_MutationAlias(t *testing.T) {
 				t.Errorf("expected %s, got %s", test.expected, alias)
 			}
 		})
+	}
+}
+
+func Test_MutationWithRawPayloadPanic(t *testing.T) {
+	type User struct {
+		ID int `json:"id"`
+	}
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected a panic, but there was none")
+		}
+	}()
+
+	// This should panic
+	_ = robin.M("user.create", func(ctx *robin.Context, body string) (string, error) {
+		return "", nil
+	}).WithRawPayload(User{})
+}
+
+func Test_MutationWithRawPayload(t *testing.T) {
+	type User struct {
+		ID int `json:"id"`
+	}
+
+	mutationFn := func(ctx *robin.Context, body io.ReadCloser) (string, error) {
+		return "", nil
+	}
+
+	m := robin.M("user.create", mutationFn).WithRawPayload(User{})
+
+	// Ensure we get the valid payload type
+	if m.ExpectedPayloadType() != types.ExpectedPayloadRaw {
+		t.Errorf("expected %v, got %v", types.ExpectedPayloadRaw, m.ExpectedPayloadType())
+	}
+
+	// Ensure the overriden payload type is correct
+	userType := reflect.TypeOf(User{})
+	if payload := m.PayloadInterface(); reflect.TypeOf(payload).String() != userType.String() {
+		t.Errorf("expected %v, got %v", userType, reflect.TypeOf(payload))
 	}
 }

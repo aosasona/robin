@@ -68,29 +68,12 @@ func Test_QueryWithRawPayloadPanic(t *testing.T) {
 	}).WithRawPayload(User{})
 }
 
-func Test_MutationWithRawPayloadPanic(t *testing.T) {
+func Test_QueryWithRawPayload(t *testing.T) {
 	type User struct {
 		ID int `json:"id"`
 	}
 
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected a panic, but there was none")
-		}
-	}()
-
-	// This should panic
-	_ = robin.M("get_user", func(ctx *robin.Context, body string) (string, error) {
-		return "", nil
-	}).WithRawPayload(User{})
-}
-
-func Test_WithRawPayload(t *testing.T) {
-	type User struct {
-		ID int `json:"id"`
-	}
-
-	q := robin.Q("get_user", func(ctx *robin.Context, body io.ReadCloser) (string, error) {
+	q := robin.Q("user.find", func(ctx *robin.Context, body io.ReadCloser) (string, error) {
 		return "", nil
 	}).WithRawPayload(User{})
 
