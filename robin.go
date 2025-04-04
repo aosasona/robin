@@ -91,6 +91,9 @@ type (
 		// Enable debug mode to log useful info
 		EnableDebugMode bool
 
+		// Whether to enable panic trapping or not
+		TrapPanic bool
+
 		// A function that will be called when an error occurs, it should ideally return a marshallable struct
 		ErrorHandler ErrorHandler
 	}
@@ -106,6 +109,9 @@ type (
 
 		// Enable debug mode to log useful info
 		debug bool
+
+		// Whether to enable panic trapping or not
+		trapPanic bool
 
 		// A list of query and mutation procedures
 		procedures *Procedures
@@ -136,6 +142,7 @@ func New(opts Options) (*Robin, error) {
 	robin = &Robin{
 		codegenOptions: codegenOptions,
 		debug:          opts.EnableDebugMode,
+		trapPanic:      opts.TrapPanic,
 		procedures:     &Procedures{},
 		errorHandler:   errorHandler,
 	}
@@ -250,11 +257,13 @@ func (r *Robin) Build() (*Instance, error) {
 // serveHTTP is the main handler for all incoming HTTP requests
 // It takes the request, and transforms it into a Robin Context, then calls the appropriate procedure if present
 func (r *Robin) serveHTTP(w http.ResponseWriter, req *http.Request) {
-	defer func(r *Robin) {
-		if e := recover(); e != nil {
-			r.sendError(w, types.RobinError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
-		}
-	}(r)
+	if r.trapPanic {
+		defer func(r *Robin) {
+			if e := recover(); e != nil {
+				r.sendError(w, types.RobinError{Reason: fmt.Sprintf("Panic trapped: %v", e)})
+			}
+		}(r)
+	}
 
 	defer req.Body.Close()
 
